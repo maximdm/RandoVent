@@ -49,6 +49,11 @@ Instant/Accelerated mode handling (M4); engine is pure TS and framework-free.
 - Events are attributed to `PlayerTeamXNoY` per the naming rules (§3).
 
 ## M3 — Remaining Sports
+**Status:** 🟡 In progress. Tennis (BO3/BO5 + tiebreak) and Basketball (10/12-min quarters)
+engines implemented and tested. Remaining: Ice Hockey, Volleyball, Table Tennis, Rugby
+(Union + League), E-Soccer, E-Sport. A `getEngine(sport)` registry returns the right engine
+and throws for not-yet-built sports.
+
 **Deliverables**
 - Engines: Tennis, Basketball, Ice Hockey, Volleyball, Table Tennis, Rugby (Union + League),
   E-Soccer, E-Sport — each with its rules/events from `agents.md` §4.
@@ -76,7 +81,9 @@ Instant/Accelerated mode handling (M4); engine is pure TS and framework-free.
 - Accelerated UI updates feel continuous and stay at 60fps on Android.
 
 ## M5 — Lottery Generator
-**Status:** 🟡 Engine done (`src/engine/lottery/Lottery.ts` + tests); UI screen pending.
+**Status:** ✅ Done. Engine (`src/engine/lottery/Lottery.ts`) + `LotteryScreen` (form with
+count/min/max/sets/allowDuplicates/sorted/seed, hyphen output, typed error display) wired into
+the home menu via a top-level screen switcher.
 
 **Deliverables**
 - `LotteryEngine.ts` + UI, implementing `LotteryConfig` (`agents.md` §7):

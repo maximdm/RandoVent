@@ -2,9 +2,10 @@ import { View, Text, StyleSheet, Button } from 'react-native';
 
 interface Props {
   onStart: (seed: number) => void;
+  onBack: () => void;
 }
 
-export function MatchSetupScreen({ onStart }: Props) {
+export function MatchSetupScreen({ onStart, onBack }: Props) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>RandoVent</Text>
@@ -13,6 +14,8 @@ export function MatchSetupScreen({ onStart }: Props) {
         Football (Instant). Leave blank for a random seed, or set one for a reproducible match.
       </Text>
       <Button title="Start Match" onPress={() => onStart(Date.now() % 2147483647)} />
+      <View style={styles.gap} />
+      <Button title="Back" onPress={onBack} />
     </View>
   );
 }
@@ -25,6 +28,7 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 12,
   },
+  gap: { height: 12 },
   title: { fontSize: 28, fontWeight: '700' },
   subtitle: { fontSize: 16, color: '#666', marginBottom: 16, textAlign: 'center' },
   note: { fontSize: 13, color: '#888', textAlign: 'center', marginBottom: 8 },

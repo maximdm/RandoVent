@@ -12,7 +12,16 @@ export type SportEventKind =
   | 'FOUL'
   | 'PERIOD_START'
   | 'PERIOD_END'
-  | 'MATCH_END';
+  | 'MATCH_END'
+  // Tennis
+  | 'SET_WIN'
+  | 'TIEBREAK'
+  | 'GAME'
+  // Basketball
+  | 'POINTS_2'
+  | 'POINTS_3'
+  | 'FREE_THROW'
+  | 'QUARTER_END';
 
 export interface SimEvent {
   id: string;

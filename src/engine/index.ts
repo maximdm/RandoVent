@@ -3,4 +3,7 @@ export * from './core/MatchConfig';
 export * from './core/EventTypes';
 export * from './core/SportEngine';
 export * from './sports/FootballEngine';
+export * from './sports/TennisEngine';
+export * from './sports/BasketballEngine';
+export * from './registry';
 export * from './lottery/Lottery';
