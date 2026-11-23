@@ -1,10 +1,12 @@
-// "The Slip": a persistent collection of up to MAX_SLIP_SETS lottery ticket sets.
-// Each set remembers the conditions it was generated under (count / range /
-// duplicates / sorted) so it can be re-rolled with the *same* conditions but a
-// fresh random outcome. Pure operations are IO-free so they unit-test without a
-// device; the repository layer handles persistence (AsyncStorage, then a
-// file-backed store, then in-memory fallback when nothing is available).
+// "The Slips": a persistent collection of NAMED lottery slips. Each slip holds up
+// to MAX_SLIP_SETS ticket sets, and each set remembers the conditions it was
+// generated under (count / range / duplicates / sorted) so it can be re-rolled
+// with the *same* conditions but a fresh random outcome. Slips are collapsible in
+// the UI and can be named. Pure operations are IO-free so they unit-test without a
+// device; the repository layer handles persistence (AsyncStorage, then a file-
+// backed store, then in-memory fallback when nothing is available).
 
+export const MAX_SLIPS = 10;
 export const MAX_SLIP_SETS = 10;
 
 // The conditions under which a single ticket set was drawn.
@@ -18,7 +20,7 @@ export interface SlipSetConfig {
 
 export interface SlipSet {
   id: string;
-  label: string; // user note; defaults to "Set N"
+  label: string; // user note for the individual set; defaults to "Set N"
   numbers: string; // current display string, e.g. "03-12-27-31-45-49"
   config: SlipSetConfig; // used for re-rolls
   seed: number; // seed used for the current numbers (reference / reproducibility)
@@ -26,9 +28,17 @@ export interface SlipSet {
   updatedAt: number;
 }
 
+export interface Slip {
+  id: string;
+  name: string; // user-given name, e.g. "Friday Lotto"
+  sets: SlipSet[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface SlipRepository {
-  load(): Promise<SlipSet[]>;
-  saveAll(sets: SlipSet[]): Promise<void>;
+  load(): Promise<Slip[]>;
+  saveAll(slips: Slip[]): Promise<void>;
 }
 
 // ---- Pure operations (no IO) ----
@@ -39,40 +49,70 @@ function createId(): string {
   return `s${Date.now().toString(36)}-${idCounter}`;
 }
 
-export interface AddResult {
-  sets: SlipSet[];
-  added: SlipSet | null;
+export interface CreateSlipResult {
+  slips: Slip[];
+  created: Slip | null;
   full: boolean;
 }
 
-export function addSlipSet(
-  current: SlipSet[],
+export function createSlip(
+  current: Slip[],
+  name?: string,
+  max = MAX_SLIPS,
+): CreateSlipResult {
+  if (current.length >= max) {
+    return { slips: current, created: null, full: true };
+  }
+  const now = Date.now();
+  const created: Slip = {
+    id: createId(),
+    name: name?.trim() || `Slip ${current.length + 1}`,
+    sets: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+  return { slips: [...current, created], created, full: false };
+}
+
+export function renameSlip(current: Slip[], id: string, name: string): Slip[] {
+  const trimmed = name.trim();
+  return current.map((s) =>
+    s.id === id ? { ...s, name: trimmed || s.name, updatedAt: Date.now() } : s,
+  );
+}
+
+export function removeSlip(current: Slip[], id: string): Slip[] {
+  return current.filter((s) => s.id !== id);
+}
+
+// ---- Per-set operations on a single slip's set list ----
+
+function addSet(
+  sets: SlipSet[],
   entry: { numbers: string; label?: string; config: SlipSetConfig; seed: number },
   max = MAX_SLIP_SETS,
-): AddResult {
-  if (current.length >= max) {
-    return { sets: current, added: null, full: true };
-  }
+): { sets: SlipSet[]; added: SlipSet | null; full: boolean } {
+  if (sets.length >= max) return { sets, added: null, full: true };
   const now = Date.now();
   const added: SlipSet = {
     id: createId(),
     numbers: entry.numbers,
-    label: entry.label?.trim() || `Set ${current.length + 1}`,
+    label: entry.label?.trim() || `Set ${sets.length + 1}`,
     config: entry.config,
     seed: entry.seed,
     createdAt: now,
     updatedAt: now,
   };
-  return { sets: [...current, added], added, full: false };
+  return { sets: [...sets, added], added, full: false };
 }
 
-export function replaceSlipSet(
-  current: SlipSet[],
-  id: string,
+function replaceSet(
+  sets: SlipSet[],
+  setId: string,
   entry: { numbers?: string; label?: string },
 ): SlipSet[] {
-  return current.map((s) =>
-    s.id === id
+  return sets.map((s) =>
+    s.id === setId
       ? {
           ...s,
           ...(entry.numbers !== undefined ? { numbers: entry.numbers } : {}),
@@ -83,34 +123,82 @@ export function replaceSlipSet(
   );
 }
 
-export function removeSlipSet(current: SlipSet[], id: string): SlipSet[] {
-  return current.filter((s) => s.id !== id);
+function removeSet(sets: SlipSet[], setId: string): SlipSet[] {
+  return sets.filter((s) => s.id !== setId);
 }
 
-// Re-roll a single set using the SAME conditions it was generated with, but a
-// fresh random seed so the numbers differ. `makeSeed` is injectable for tests.
-export function rerollSlipSet(
-  current: SlipSet[],
-  id: string,
+function rerollSet(
+  sets: SlipSet[],
+  setId: string,
   generate: (config: SlipSetConfig) => { numbers: string; seed: number },
 ): SlipSet[] {
-  return current.map((s) => {
-    if (s.id !== id) return s;
+  return sets.map((s) => {
+    if (s.id !== setId) return s;
     const { numbers, seed } = generate(s.config);
     return { ...s, numbers, seed, updatedAt: Date.now() };
   });
+}
+
+// ---- Slip-level operations ----
+
+export interface AddSetResult {
+  slips: Slip[];
+  full: boolean; // the target slip was already at capacity
+}
+
+export function addSetToSlip(
+  current: Slip[],
+  slipId: string,
+  entry: { numbers: string; label?: string; config: SlipSetConfig; seed: number },
+): AddSetResult {
+  let full = false;
+  const slips = current.map((s) => {
+    if (s.id !== slipId) return s;
+    const res = addSet(s.sets, entry);
+    full = res.full;
+    return { ...s, sets: res.sets, updatedAt: Date.now() };
+  });
+  return { slips, full };
+}
+
+export function replaceSetInSlip(
+  current: Slip[],
+  slipId: string,
+  setId: string,
+  entry: { numbers?: string; label?: string },
+): Slip[] {
+  return current.map((s) =>
+    s.id === slipId ? { ...s, sets: replaceSet(s.sets, setId, entry), updatedAt: Date.now() } : s,
+  );
+}
+
+export function removeSetFromSlip(current: Slip[], slipId: string, setId: string): Slip[] {
+  return current.map((s) =>
+    s.id === slipId ? { ...s, sets: removeSet(s.sets, setId), updatedAt: Date.now() } : s,
+  );
+}
+
+export function rerollSetInSlip(
+  current: Slip[],
+  slipId: string,
+  setId: string,
+  generate: (config: SlipSetConfig) => { numbers: string; seed: number },
+): Slip[] {
+  return current.map((s) =>
+    s.id === slipId ? { ...s, sets: rerollSet(s.sets, setId, generate), updatedAt: Date.now() } : s,
+  );
 }
 
 // ---- Repositories ----
 
 // Session-only store (fallback when no persistent backend is available).
 export class InMemorySlipRepository implements SlipRepository {
-  private sets: SlipSet[] = [];
-  async load(): Promise<SlipSet[]> {
-    return [...this.sets];
+  private slips: Slip[] = [];
+  async load(): Promise<Slip[]> {
+    return [...this.slips];
   }
-  async saveAll(sets: SlipSet[]): Promise<void> {
-    this.sets = [...sets];
+  async saveAll(slips: Slip[]): Promise<void> {
+    this.slips = [...slips];
   }
 }
 
@@ -119,24 +207,24 @@ interface KeyValueStore {
   setItem(key: string, value: string): Promise<void>;
 }
 
-const STORAGE_KEY = 'randovent.slip.v1';
+const STORAGE_KEY = 'randovent.slips.v1';
 
 export class KeyValueSlipRepository implements SlipRepository {
   constructor(private readonly store: KeyValueStore) {}
 
-  async load(): Promise<SlipSet[]> {
+  async load(): Promise<Slip[]> {
     const raw = await this.store.getItem(STORAGE_KEY);
     if (!raw) return [];
     try {
-      const parsed = JSON.parse(raw) as SlipSet[];
+      const parsed = JSON.parse(raw) as Slip[];
       return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
   }
 
-  async saveAll(sets: SlipSet[]): Promise<void> {
-    await this.store.setItem(STORAGE_KEY, JSON.stringify(sets));
+  async saveAll(slips: Slip[]): Promise<void> {
+    await this.store.setItem(STORAGE_KEY, JSON.stringify(slips));
   }
 }
 
@@ -152,24 +240,24 @@ interface FileSystemLike {
 export class FileSystemSlipRepository implements SlipRepository {
   private readonly path: string;
   constructor(private readonly fs: FileSystemLike) {
-    this.path = `${fs.documentDirectory}randovent.slip.json`;
+    this.path = `${fs.documentDirectory}randovent.slips.json`;
   }
 
-  async load(): Promise<SlipSet[]> {
+  async load(): Promise<Slip[]> {
     try {
       const info = await this.fs.getInfoAsync(this.path);
       if (!info.exists) return [];
       const raw = await this.fs.readFileAsync(this.path, 'utf8');
-      const parsed = JSON.parse(raw) as SlipSet[];
+      const parsed = JSON.parse(raw) as Slip[];
       return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
   }
 
-  async saveAll(sets: SlipSet[]): Promise<void> {
+  async saveAll(slips: Slip[]): Promise<void> {
     try {
-      await this.fs.writeFileAsync(this.path, JSON.stringify(sets), 'utf8');
+      await this.fs.writeFileAsync(this.path, JSON.stringify(slips), 'utf8');
     } catch {
       // Best-effort; ignore write failures (e.g. no storage permission).
     }

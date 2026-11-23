@@ -1,13 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { generateLottery, LotteryError, randomSeed } from '../engine';
 import {
   slipRepo,
-  addSlipSet,
-  removeSlipSet,
-  rerollSlipSet,
-  replaceSlipSet,
+  createSlip,
+  renameSlip,
+  removeSlip,
+  addSetToSlip,
+  replaceSetInSlip,
+  removeSetFromSlip,
+  rerollSetInSlip,
+  MAX_SLIPS,
   MAX_SLIP_SETS,
+  Slip,
   SlipSet,
   SlipSetConfig,
 } from '../storage/slip';
@@ -25,6 +30,8 @@ import {
 interface Props {
   onBack: () => void;
 }
+
+const NEW = '__new__';
 
 function BoolSegment({
   label,
@@ -65,27 +72,34 @@ export function LotteryScreen({ onBack }: Props) {
   const [seed, setSeed] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const [slip, setSlip] = useState<SlipSet[]>([]);
+  const [slips, setSlips] = useState<Slip[]>([]);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [target, setTarget] = useState<string>(NEW);
   const [fullHint, setFullHint] = useState(false);
 
   useEffect(() => {
     let active = true;
     void slipRepo.load().then((loaded) => {
-      if (active) setSlip(loaded);
+      if (active) setSlips(loaded);
     });
     return () => {
       active = false;
     };
   }, []);
 
-  // Persist the whole slip (single source of truth on disk).
-  const persist = useCallback((next: SlipSet[]) => {
-    setSlip(next);
+  const commit = (next: Slip[]) => {
+    setSlips(next);
     void slipRepo.saveAll(next);
-  }, []);
+  };
+
+  // The slip new sets should be added to (a real id, or NEW to create one).
+  const effectiveTarget = target === NEW || slips.some((s) => s.id === target)
+    ? target
+    : slips[0]?.id ?? NEW;
 
   const run = () => {
     setError(null);
+    setFullHint(false);
     try {
       const cfg: SlipSetConfig = {
         count: Number(count),
@@ -98,51 +112,89 @@ export function LotteryScreen({ onBack }: Props) {
       const out = generateLottery({ ...cfg, sets: Number(sets) || 1, seed: seedVal });
       const lines = typeof out === 'string' ? [out] : out;
 
-      let next = slip;
+      let next = slips;
+      let newId: string | null = null;
+      if (effectiveTarget === NEW) {
+        const res = createSlip(next);
+        if (res.full) {
+          setError(`Slip limit reached (${MAX_SLIPS}). Delete a slip to add more.`);
+          setFullHint(true);
+          return;
+        }
+        next = res.slips;
+        newId = res.created!.id;
+      }
+      const slipId = newId ?? effectiveTarget;
+
       let full = false;
       for (const line of lines) {
-        const res = addSlipSet(next, {
+        const r = addSetToSlip(next, slipId, {
           numbers: line,
           config: cfg,
           seed: seedVal ?? randomSeed(),
         });
-        if (res.full) {
+        next = r.slips;
+        if (r.full) {
           full = true;
           break;
         }
-        next = res.sets;
       }
-      persist(next);
-      setFullHint(full);
+      commit(next);
+      if (newId) {
+        setTarget(newId);
+        setExpanded((e) => ({ ...e, [newId as string]: true }));
+      }
       if (full) {
-        setError(`Slip is full (${MAX_SLIP_SETS}). Reroll or delete a set to add more.`);
+        setError(`That slip is full (${MAX_SLIP_SETS}). Reroll or delete a set.`);
+        setFullHint(true);
       }
     } catch (e) {
       setError(e instanceof LotteryError ? e.message : String(e));
     }
   };
 
-  const reroll = (id: string) => {
-    const next = rerollSlipSet(slip, id, (cfg) => {
-      const s = randomSeed();
-      const numbers = generateLottery({ ...cfg, sets: 1, seed: s }) as string;
-      return { numbers, seed: s };
+  const newSlip = () => {
+    const res = createSlip(slips);
+    if (res.full) {
+      setError(`Slip limit reached (${MAX_SLIPS}). Delete a slip to add more.`);
+      setFullHint(true);
+      return;
+    }
+    commit(res.slips);
+    const id = res.created!.id;
+    setTarget(id);
+    setExpanded((e) => ({ ...e, [id]: true }));
+  };
+
+  const deleteSlipById = (id: string) => {
+    commit(removeSlip(slips, id));
+    setExpanded((e) => {
+      const { [id]: _, ...rest } = e;
+      return rest;
     });
-    persist(next);
+    if (target === id) setTarget(NEW);
   };
 
-  const deleteSlot = (id: string) => {
-    persist(removeSlipSet(slip, id));
-    setFullHint(false);
+  const reroll = (slipId: string, setId: string) => {
+    commit(
+      rerollSetInSlip(slips, slipId, setId, (cfg) => {
+        const s = randomSeed();
+        const numbers = generateLottery({ ...cfg, sets: 1, seed: s }) as string;
+        return { numbers, seed: s };
+      }),
+    );
   };
 
-  const editLabel = (id: string, label: string) => {
-    persist(replaceSlipSet(slip, id, { label }));
+  const deleteSet = (slipId: string, setId: string) => {
+    commit(removeSetFromSlip(slips, slipId, setId));
   };
 
-  const clearAll = () => {
-    persist([]);
-    setFullHint(false);
+  const editLabel = (slipId: string, setId: string, label: string) => {
+    commit(replaceSetInSlip(slips, slipId, setId, { label }));
+  };
+
+  const renameSlipById = (id: string, name: string) => {
+    commit(renameSlip(slips, id, name));
   };
 
   return (
@@ -182,8 +234,23 @@ export function LotteryScreen({ onBack }: Props) {
         </Field>
         <BoolSegment label="Allow duplicates" value={allowDuplicates} onChange={setAllowDuplicates} />
         <BoolSegment label="Sorted" value={sorted} onChange={setSorted} />
+
+        <Field label="Add to slip">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
+            {slips.map((s) => (
+              <Chip
+                key={s.id}
+                label={s.name}
+                active={effectiveTarget === s.id}
+                onPress={() => setTarget(s.id)}
+              />
+            ))}
+            <Chip label="＋ New" active={effectiveTarget === NEW} onPress={() => setTarget(NEW)} />
+          </ScrollView>
+        </Field>
+
         <View style={{ marginTop: 4 }}>
-          <Button title="Add to Slip" onPress={run} block />
+          <Button title="Generate & Add" onPress={run} block />
         </View>
       </Card>
 
@@ -196,42 +263,85 @@ export function LotteryScreen({ onBack }: Props) {
       <Card style={{ marginBottom: 14 }}>
         <View style={styles.slipHeader}>
           <SectionTitle style={{ marginBottom: 0 }}>
-            Your Slip ({slip.length}/{MAX_SLIP_SETS})
+            Your Slips ({slips.length}/{MAX_SLIPS})
           </SectionTitle>
-          {slip.length > 0 && (
-            <Button title="Clear all" onPress={clearAll} variant="ghost" />
-          )}
+          <Button title="＋ New Slip" onPress={newSlip} variant="ghost" />
         </View>
 
-        {slip.length === 0 && (
-          <Text style={styles.muted}>No sets yet — draw some numbers above to fill your slip.</Text>
+        {slips.length === 0 && (
+          <Text style={styles.muted}>
+            No slips yet — generate a set above (it creates a new slip) or tap “＋ New Slip”.
+          </Text>
         )}
 
-        {slip.map((s) => (
-          <View key={s.id} style={styles.slipRow}>
-            <Input
-              value={s.label}
-              placeholder="Note / label"
-              onChangeText={(t) => editLabel(s.id, t)}
-            />
-            <View style={{ marginTop: 8 }}>
-              <Text style={styles.numbers}>{s.numbers}</Text>
-            </View>
-            <Text style={styles.conditions}>{describe(s.config)}</Text>
-            <View style={styles.slipActions}>
-              <View style={{ flex: 1 }}>
-                <Button title="Reroll ↻" onPress={() => reroll(s.id)} />
+        {slips.map((slip) => {
+          const isOpen = !!expanded[slip.id];
+          return (
+            <View key={slip.id} style={styles.slipCard}>
+              <View style={styles.slipTop}>
+                <Pressable
+                  onPress={() =>
+                    setExpanded((e) => ({ ...e, [slip.id]: !e[slip.id] }))
+                  }
+                  hitSlop={8}
+                  style={styles.chevron}
+                >
+                  <Text style={styles.chevronText}>{isOpen ? '▼' : '▶'}</Text>
+                </Pressable>
+                <View style={{ flex: 1 }}>
+                  <Input
+                    value={slip.name}
+                    placeholder="Slip name"
+                    onChangeText={(t) => renameSlipById(slip.id, t)}
+                  />
+                </View>
+                <Text style={styles.countBadge}>
+                  {slip.sets.length}/{MAX_SLIP_SETS}
+                </Text>
+                <Pressable
+                  onPress={() => deleteSlipById(slip.id)}
+                  hitSlop={8}
+                  style={styles.trash}
+                >
+                  <Text style={styles.trashText}>🗑</Text>
+                </Pressable>
               </View>
-              <View style={{ flex: 1 }}>
-                <Button
-                  title="Delete"
-                  onPress={() => deleteSlot(s.id)}
-                  variant="danger"
-                />
-              </View>
+
+              {isOpen && (
+                <View style={styles.slipBody}>
+                  {slip.sets.length === 0 && (
+                    <Text style={styles.muted}>Empty — add sets from the generator above.</Text>
+                  )}
+                  {slip.sets.map((s: SlipSet) => (
+                    <View key={s.id} style={styles.setRow}>
+                      <Input
+                        value={s.label}
+                        placeholder="Note / label"
+                        onChangeText={(t) => editLabel(slip.id, s.id, t)}
+                      />
+                      <View style={{ marginTop: 8 }}>
+                        <Text style={styles.numbers}>{s.numbers}</Text>
+                      </View>
+                      <Text style={styles.conditions}>{describe(s.config)}</Text>
+                      <View style={styles.setActions}>
+                        <View style={{ flex: 1 }}>
+                          <Button title="Reroll ↻" onPress={() => reroll(slip.id, s.id)} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Button
+                            title="Delete"
+                            onPress={() => deleteSet(slip.id, s.id)}
+                            variant="danger"
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
-          </View>
-        ))}
+          );
+        })}
       </Card>
 
       <Button title="Back" onPress={onBack} variant="ghost" block />
@@ -239,12 +349,25 @@ export function LotteryScreen({ onBack }: Props) {
   );
 }
 
+function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.chip,
+        active && styles.chipActive,
+        pressed && styles.chipPressed,
+      ]}
+    >
+      <Text style={[styles.chipText, active && styles.chipTextActive]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  grid2: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
+  grid2: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   cell: { width: '48%' },
   errorCard: { marginBottom: 14, borderColor: '#fecaca', backgroundColor: '#fef2f2' },
   errorText: { color: palette.danger, fontWeight: '600' },
@@ -255,21 +378,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  slipRow: {
+  chips: { flexGrow: 0, marginVertical: 4 },
+  chip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: palette.surfaceAlt,
+    borderWidth: 1,
+    borderColor: palette.border,
+    marginRight: 8,
+  },
+  chipActive: {
+    backgroundColor: palette.primary,
+    borderColor: palette.primary,
+  },
+  chipPressed: { opacity: 0.8 },
+  chipText: { color: palette.subtext, fontWeight: '600', fontSize: 13 },
+  chipTextActive: { color: '#fff' },
+  slipCard: {
     marginTop: 12,
-    padding: 12,
+    padding: 10,
     backgroundColor: palette.surfaceAlt,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: palette.border,
   },
+  slipTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  chevron: { paddingHorizontal: 4 },
+  chevronText: { fontSize: 14, color: palette.subtext },
+  countBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: palette.subtext,
+    minWidth: 34,
+    textAlign: 'center',
+  },
+  trash: { paddingHorizontal: 4 },
+  trashText: { fontSize: 16 },
+  slipBody: { marginTop: 10 },
+  setRow: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: palette.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: palette.border,
+  },
   numbers: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     fontFamily: 'monospace',
     letterSpacing: 1,
     color: palette.text,
   },
   conditions: { fontSize: 12, color: palette.subtext, marginTop: 4 },
-  slipActions: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  setActions: { flexDirection: 'row', gap: 10, marginTop: 10 },
 });

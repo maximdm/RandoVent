@@ -292,3 +292,31 @@ visually consistent and more usable:
 > `@react-native-async-storage/async-storage` is installed/linked (it is already a `package.json`
 > dependency) or run `npx expo install expo-file-system` — no code change is needed; the factory picks
 > it up automatically.
+
+## M13 — Multi-slip: named, collapsible slips (re-think of M12)
+**Status:** ✅ Done. Reworked M12's single global slip into a proper **collection of slips**.
+- Data model in `src/storage/slip.ts` is now `Slip { id, name, sets, createdAt, updatedAt }` holding up
+  to `MAX_SLIP_SETS` (10) `SlipSet`s; the repository persists an array of `Slip` (key
+  `randovent.slips.v1`, file `randovent.slips.json`). Caps: `MAX_SLIPS = 10` slips.
+- Pure ops: `createSlip` (auto-name "Slip N"), `renameSlip`, `removeSlip`, `addSetToSlip` (per-slip
+  cap + `full` flag), `replaceSetInSlip`, `removeSetFromSlip`, `rerollSetInSlip` (re-roll a set with
+  its saved conditions, fresh seed). The per-set helpers are applied inside the slip mapping so state
+  stays immutable.
+- `LotteryScreen` UX:
+  - **Generator** chooses a target via a horizontal chip selector (each slip by name + "＋ New"); a
+    `Generate & Add` run appends the batch to the chosen slip, or creates a new one when "＋ New" is
+    selected. A "＋ New Slip" button creates an empty named slip on demand.
+  - **"Your Slips (n/10)"** lists each slip as a **collapsible card**: a chevron toggles expansion, the
+    **name is an inline editable field**, a `k/10` badge shows fill, and a 🗑 deletes the slip. Expanded
+    slips show their sets (editable label, numbers, conditions line, **Reroll ↻** / **Delete**).
+
+**Acceptance**
+- `tsc --noEmit` clean; tests pass (106 — `slip.test.ts` now covers create/rename/remove/add/replace/
+  remove-set/reroll at the slip-collection level).
+- Up to 10 slips; each slip up to 10 sets; overflow reports "full" and does not mutate state.
+- Rename persists; collapse state is UI-only (not persisted); deleting a slip also drops it as the
+  generation target.
+- Same persistence caveat as M12 (backend-dependent disk storage).
+
+> Note: `LotteryScreen` previously referenced a single `SlipSet[]`; it now drives the `Slip[]` model.
+> No engine logic changed — only storage shape, screen wiring, and the persistence key/format.
