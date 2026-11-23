@@ -1,0 +1,12 @@
+Fix CI: regenerate package-lock.json to match package.json; use Node 22
+
+npm ci failed on GitHub because package-lock.json (last touched at the
+initial commit) was out of sync with package.json. It was missing
+@react-native-async-storage/async-storage and several transitive deps
+(react-dom, react-native-web, and others). Regenerated the lock via
+npm install --package-lock-only and verified it with npm ci --dry-run,
+which now succeeds.
+
+Also bumped the CI runner to Node 22, which is the version the Expo 58 /
+React Native 0.88 / Metro toolchain actually requires, clearing the
+EBADENGINE warnings.
