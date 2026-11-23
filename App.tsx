@@ -26,14 +26,25 @@ export default function App() {
   const [selectedSport, setSelectedSport] = useState<SportKey>(SportKey.FOOTBALL);
   const [matchView, setMatchView] = useState<MatchView>('live');
   const [match, setMatch] = useState<SimResult | null>(null);
+  const [lastConfig, setLastConfig] = useState<MatchConfig | null>(null);
 
-  const start = (config: MatchConfig) => {
+  // Simulate and show a match, recording the seed actually used for reproducibility.
+  const launch = (config: MatchConfig) => {
     const seed = config.seed ?? randomSeed();
     const sim = simulate({ ...config, seed });
-    // Record the seed actually used so the result is reproducible from the UI.
     setMatch({ ...sim, metadata: { ...sim.metadata, seed } });
     setMatchView('live');
     setView('match');
+  };
+
+  const start = (config: MatchConfig) => {
+    setLastConfig(config);
+    launch(config);
+  };
+
+  // Re-roll the same sport/options with a fresh random seed.
+  const replay = () => {
+    if (lastConfig) launch({ ...lastConfig, seed: undefined });
   };
 
   return (
@@ -68,11 +79,17 @@ export default function App() {
         <LiveMatchScreen
           match={match}
           onSummary={() => setMatchView('summary')}
-          onNewMatch={() => setView('pick')}
+          onReplay={replay}
+          onAllSports={() => setView('pick')}
         />
       )}
       {view === 'match' && matchView === 'summary' && match && (
-        <MatchSummaryScreen match={match} onBack={() => setView('home')} />
+        <MatchSummaryScreen
+          match={match}
+          onBack={() => setView('home')}
+          onReplay={replay}
+          onAllSports={() => setView('pick')}
+        />
       )}
 
       {view === 'lottery' && <LotteryScreen onBack={() => setView('home')} />}

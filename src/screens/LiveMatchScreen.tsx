@@ -9,14 +9,19 @@ import { Screen, Card, Button, Segmented, palette } from '../components/ui';
 interface Props {
   match: SimResult;
   onSummary: () => void;
-  onNewMatch: () => void;
+  onReplay: () => void;
+  onAllSports: () => void;
 }
 
 type Mode = 'INSTANT' | 'ACCELERATED';
 type LiveView = 'feed' | 'stats';
 
 // Accelerated view: clock, running score, controls and the progressively revealed feed.
-function AcceleratedView({ match, onSummary, onNewMatch }: Props) {
+interface AcceleratedProps {
+  match: SimResult;
+  onSummary: () => void;
+}
+function AcceleratedView({ match, onSummary }: AcceleratedProps) {
   const { snapshot, status, pause, resume, reset, jumpToEnd } = useMatchPlayback(match);
   const [a, b] = runningScore(match, snapshot.revealed);
   const { teamAName, teamBName } = match.metadata as { teamAName: string; teamBName: string };
@@ -56,7 +61,7 @@ function AcceleratedView({ match, onSummary, onNewMatch }: Props) {
   );
 }
 
-export function LiveMatchScreen({ match, onSummary, onNewMatch }: Props) {
+export function LiveMatchScreen({ match, onSummary, onReplay, onAllSports }: Props) {
   const [mode, setMode] = useState<Mode>('INSTANT');
   const [liveView, setLiveView] = useState<LiveView>('feed');
   const [a, b] = runningScore(match, match.events);
@@ -108,17 +113,20 @@ export function LiveMatchScreen({ match, onSummary, onNewMatch }: Props) {
             <EventFeed events={match.events} />
           </View>
         ) : (
-          <AcceleratedView match={match} onSummary={onSummary} onNewMatch={onNewMatch} />
+          <AcceleratedView match={match} onSummary={onSummary} />
         )}
       </View>
 
       <View style={styles.bottomControls}>
         <View style={{ flex: 1 }}>
-          <Button title="Summary" onPress={onSummary} variant="secondary" />
+          <Button title="Same Sport ↻" onPress={onReplay} />
         </View>
         <View style={{ flex: 1 }}>
-          <Button title="New Match" onPress={onNewMatch} />
+          <Button title="Summary" onPress={onSummary} variant="secondary" />
         </View>
+      </View>
+      <View style={[styles.bottomControls, { marginTop: 10 }]}>
+        <Button title="All Sports" onPress={onAllSports} variant="secondary" block />
       </View>
     </Screen>
   );

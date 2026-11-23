@@ -242,3 +242,18 @@ visually consistent and more usable:
 - Every screen uses the shared kit (no ad-hoc `StyleSheet` duplication); the look is uniform across
   Home, picker, options, live, summary and lottery.
 - No behaviour changed — only presentation and control affordances (segmented vs cycle button).
+
+## M11 — Match loop controls (replay same sport + return to all sports)
+**Status:** ✅ Done. Streamlined the post-match loop so users can re-roll without re-entering options.
+- `App` now remembers `lastConfig` (sport, team names, options) and exposes a `replay` action that
+  re-simulates the **same sport and settings with a fresh random seed** (the last-config seed is
+  cleared so it differs each time).
+- **Live** and **Summary** screens gained two actions: **"Same Sport ↻"** (replay) and **"All Sports"**
+  (return to the sport picker). The Live screen's old "New Match" (which also went to the picker) is
+  replaced by these two clearer buttons; Summary's "Back to Home" is now paired with "All Sports".
+
+**Acceptance**
+- `tsc --noEmit` clean; all tests pass (104).
+- "Same Sport ↻" yields a different match each tap (random seed) while keeping sport + team names +
+  options; "All Sports" returns to `SportPickerScreen`.
+- No engine/stats logic changed — only navigation actions and button wiring.

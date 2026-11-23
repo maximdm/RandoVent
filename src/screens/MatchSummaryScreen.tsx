@@ -6,6 +6,8 @@ import { ScrollScreen, Card, Button, SectionTitle, palette } from '../components
 interface Props {
   match: SimResult;
   onBack: () => void;
+  onReplay: () => void;
+  onAllSports: () => void;
 }
 
 const WINNER_LABEL: Record<SimResult['winner'], string> = {
@@ -32,7 +34,7 @@ function hasFoulsRow(r: PlayerStat): boolean {
   return r.fouls > 0;
 }
 
-export function MatchSummaryScreen({ match, onBack }: Props) {
+export function MatchSummaryScreen({ match, onBack, onReplay, onAllSports }: Props) {
   const { teamAName, teamBName, seed } = match.metadata as {
     teamAName: string;
     teamBName: string;
@@ -81,7 +83,17 @@ export function MatchSummaryScreen({ match, onBack }: Props) {
         </Card>
       )}
 
-      <Button title="Back to Home" onPress={onBack} block />
+      <View style={{ gap: 10 }}>
+        <Button title="Same Sport ↻" onPress={onReplay} block />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <Button title="All Sports" onPress={onAllSports} variant="secondary" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button title="Home" onPress={onBack} variant="secondary" />
+          </View>
+        </View>
+      </View>
     </ScrollScreen>
   );
 }
