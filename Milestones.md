@@ -181,6 +181,8 @@ note (label). Built in `src/storage/savedSets.ts`:
 > Note: the project's npm policy blocks native-module script execution, so AsyncStorage is not yet
 > installed; the feature works in-session and will persist to disk once the package is added and the
 > factory's `require` is swapped for a static import.
+> **Reworked in M12**: the notebook is now "the Slip" with per-set re-roll and a multi-backend
+> persistence layer (see M12).
 
 ## M9 — Match Statistics Panel (all sports)
 **Status:** ✅ Done. The Match Summary now shows a **Match Stats** table (per-team tallies derived
@@ -257,3 +259,36 @@ visually consistent and more usable:
 - "Same Sport ↻" yields a different match each tap (random seed) while keeping sport + team names +
   options; "All Sports" returns to `SportPickerScreen`.
 - No engine/stats logic changed — only navigation actions and button wiring.
+
+## M12 — "The Slip" (re-think lottery: per-set re-roll + persistent)
+**Status:** ✅ Done. Reworked the lottery notebook into a proper **slip** of 1–10 ticket sets.
+- `src/storage/slip.ts` replaces `savedSets.ts`. Each `SlipSet` now stores its own generation
+  **`config`** (`count`, `min`, `max`, `allowDuplicates`, `sorted`) plus the `seed` used, so a set can
+  be **re-rolled with the exact same conditions** but a fresh random outcome (`rerollSlipSet`).
+- `LotteryScreen` exposes an **"Add to Slip"** generator (Count / Sets 1–10 / Min / Max / Seed /
+  duplicates / sorted) and renders **"Your Slip (n/10)"** with one card per set: editable label, the
+  numbers, a human-readable conditions line (e.g. "6 from 1–49 · unique · sorted"), and **Reroll ↻** +
+  **Delete** buttons. **Clear all** wipes the slip.
+- **Persistence**: `createSlipRepository` tries (in order) `@react-native-async-storage/async-storage`
+  (already a declared dependency), then `expo-file-system`, then an in-memory fallback. The optional
+  backends are loaded via a *dynamic* `require` (module name in a variable) so Metro does not fail to
+  bundle when they are absent; the chosen backend is used transparently. Added `FileSystemSlipRepository`
+  (JSON file in `documentDirectory`, corruption-tolerant) alongside the existing key-value store.
+- **Latent bug fixed**: `generateLottery` with no seed fell back to `createRng(0)` (always the same
+  draw). It now uses a fresh `randomSeed()` when `seed` is omitted, so blank-seed draws and re-rolls
+  actually vary. `randomSeed()` was also centralized in `src/engine/core/Distributions.ts` (App now
+  imports it instead of defining its own).
+
+**Acceptance**
+- `tsc --noEmit` clean; tests pass (105 — added a `rerollSlipSet` test; `savedSets.test.ts` replaced by
+  `slip.test.ts`).
+- Slip caps at 10 sets; adding when full reports "full" and does not mutate state.
+- **Reroll** preserves the set's `config` but produces different numbers (verified) and a new seed.
+- A blank seed yields a different draw each time; an explicit seed still reproduces exactly.
+
+> Persistence caveat: real disk persistence requires a storage backend to be present in the build. In
+> this dev sandbox none is installed (same native-module install block as M8), so the slip currently
+> falls back to in-memory for the session. To enable it on a device, ensure
+> `@react-native-async-storage/async-storage` is installed/linked (it is already a `package.json`
+> dependency) or run `npx expo install expo-file-system` — no code change is needed; the factory picks
+> it up automatically.

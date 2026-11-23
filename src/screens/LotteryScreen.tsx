@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { generateLottery, LotteryError } from '../engine';
+import { generateLottery, LotteryError, randomSeed } from '../engine';
 import {
-  savedSetsRepo,
-  addSavedSet,
-  replaceSavedSet,
-  removeSavedSet,
-  MAX_SAVED_SETS,
-  SavedLotterySet,
-} from '../storage/savedSets';
+  slipRepo,
+  addSlipSet,
+  removeSlipSet,
+  rerollSlipSet,
+  replaceSlipSet,
+  MAX_SLIP_SETS,
+  SlipSet,
+  SlipSetConfig,
+} from '../storage/slip';
 import {
   ScrollScreen,
   Card,
@@ -47,6 +49,12 @@ function BoolSegment({
   );
 }
 
+function describe(config: SlipSetConfig): string {
+  const dup = config.allowDuplicates ? 'repeats allowed' : 'unique';
+  const sort = config.sorted ? 'sorted' : 'as drawn';
+  return `${config.count} from ${config.min}–${config.max} · ${dup} · ${sort}`;
+}
+
 export function LotteryScreen({ onBack }: Props) {
   const [count, setCount] = useState('6');
   const [min, setMin] = useState('1');
@@ -55,66 +63,81 @@ export function LotteryScreen({ onBack }: Props) {
   const [allowDuplicates, setAllowDuplicates] = useState(false);
   const [sorted, setSorted] = useState(true);
   const [seed, setSeed] = useState('');
-  const [result, setResult] = useState<string | string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [savedSets, setSavedSets] = useState<SavedLotterySet[]>([]);
+  const [slip, setSlip] = useState<SlipSet[]>([]);
   const [fullHint, setFullHint] = useState(false);
 
   useEffect(() => {
     let active = true;
-    void savedSetsRepo.load().then((loaded) => {
-      if (active) setSavedSets(loaded);
+    void slipRepo.load().then((loaded) => {
+      if (active) setSlip(loaded);
     });
     return () => {
       active = false;
     };
   }, []);
 
+  // Persist the whole slip (single source of truth on disk).
+  const persist = useCallback((next: SlipSet[]) => {
+    setSlip(next);
+    void slipRepo.saveAll(next);
+  }, []);
+
   const run = () => {
     setError(null);
     try {
-      const out = generateLottery({
+      const cfg: SlipSetConfig = {
         count: Number(count),
         min: Number(min),
         max: Number(max),
-        sets: Number(sets) || 1,
         allowDuplicates,
         sorted,
-        seed: seed.trim() === '' ? undefined : Number(seed),
-      });
-      setResult(out);
+      };
+      const seedVal = seed.trim() === '' ? undefined : Number(seed);
+      const out = generateLottery({ ...cfg, sets: Number(sets) || 1, seed: seedVal });
+      const lines = typeof out === 'string' ? [out] : out;
+
+      let next = slip;
+      let full = false;
+      for (const line of lines) {
+        const res = addSlipSet(next, {
+          numbers: line,
+          config: cfg,
+          seed: seedVal ?? randomSeed(),
+        });
+        if (res.full) {
+          full = true;
+          break;
+        }
+        next = res.sets;
+      }
+      persist(next);
+      setFullHint(full);
+      if (full) {
+        setError(`Slip is full (${MAX_SLIP_SETS}). Reroll or delete a set to add more.`);
+      }
     } catch (e) {
-      setResult(null);
       setError(e instanceof LotteryError ? e.message : String(e));
     }
   };
 
-  const persist = useCallback((next: SavedLotterySet[]) => {
-    setSavedSets(next);
-    void savedSetsRepo.saveAll(next);
-  }, []);
-
-  const lines = typeof result === 'string' ? [result] : result ?? [];
-
-  const saveLine = (numbers: string) => {
-    const { sets: next, full } = addSavedSet(savedSets, { numbers });
-    setFullHint(full);
-    if (!full) persist(next);
-  };
-
-  const replaceSlot = (id: string) => {
-    if (lines.length === 0) return;
-    persist(replaceSavedSet(savedSets, id, { numbers: lines[0] }));
+  const reroll = (id: string) => {
+    const next = rerollSlipSet(slip, id, (cfg) => {
+      const s = randomSeed();
+      const numbers = generateLottery({ ...cfg, sets: 1, seed: s }) as string;
+      return { numbers, seed: s };
+    });
+    persist(next);
   };
 
   const deleteSlot = (id: string) => {
-    persist(removeSavedSet(savedSets, id));
+    persist(removeSlipSet(slip, id));
     setFullHint(false);
   };
 
-  const editSlot = (id: string, patch: Partial<Pick<SavedLotterySet, 'label' | 'numbers'>>) => {
-    setSavedSets((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  const editLabel = (id: string, label: string) => {
+    persist(replaceSlipSet(slip, id, { label }));
   };
 
   const clearAll = () => {
@@ -134,7 +157,7 @@ export function LotteryScreen({ onBack }: Props) {
             </Field>
           </View>
           <View style={styles.cell}>
-            <Field label="Sets">
+            <Field label="Sets (1–10)">
               <Input value={sets} onChangeText={setSets} keyboardType="numeric" />
             </Field>
           </View>
@@ -150,12 +173,17 @@ export function LotteryScreen({ onBack }: Props) {
           </View>
         </View>
         <Field label="Seed" hint="Optional — blank = random">
-          <Input value={seed} onChangeText={setSeed} keyboardType="numeric" placeholder="blank = random" />
+          <Input
+            value={seed}
+            onChangeText={setSeed}
+            keyboardType="numeric"
+            placeholder="blank = random"
+          />
         </Field>
         <BoolSegment label="Allow duplicates" value={allowDuplicates} onChange={setAllowDuplicates} />
         <BoolSegment label="Sorted" value={sorted} onChange={setSorted} />
         <View style={{ marginTop: 4 }}>
-          <Button title="Generate" onPress={run} block />
+          <Button title="Add to Slip" onPress={run} block />
         </View>
       </Card>
 
@@ -165,56 +193,42 @@ export function LotteryScreen({ onBack }: Props) {
         </Card>
       )}
 
-      {result && (
-        <Card style={{ marginBottom: 14 }}>
-          <SectionTitle>Result</SectionTitle>
-          {lines.map((line, i) => (
-            <View key={i} style={styles.resultLine}>
-              <Text style={styles.line}>{line}</Text>
-              <Button title="Save" onPress={() => saveLine(line)} />
-            </View>
-          ))}
-        </Card>
-      )}
-
       <Card style={{ marginBottom: 14 }}>
-        <View style={styles.notebookHeader}>
+        <View style={styles.slipHeader}>
           <SectionTitle style={{ marginBottom: 0 }}>
-            Saved Sets ({savedSets.length}/{MAX_SAVED_SETS})
+            Your Slip ({slip.length}/{MAX_SLIP_SETS})
           </SectionTitle>
-          {savedSets.length > 0 && (
+          {slip.length > 0 && (
             <Button title="Clear all" onPress={clearAll} variant="ghost" />
           )}
         </View>
 
-        {fullHint && (
-          <Text style={styles.errorText}>
-            Notebook is full ({MAX_SAVED_SETS}). Delete or replace a set to add more.
-          </Text>
+        {slip.length === 0 && (
+          <Text style={styles.muted}>No sets yet — draw some numbers above to fill your slip.</Text>
         )}
 
-        {savedSets.length === 0 && !fullHint && (
-          <Text style={styles.muted}>No saved sets yet — generate and tap Save.</Text>
-        )}
-
-        {savedSets.map((s) => (
-          <View key={s.id} style={styles.savedRow}>
+        {slip.map((s) => (
+          <View key={s.id} style={styles.slipRow}>
             <Input
               value={s.label}
               placeholder="Note / label"
-              onChangeText={(t) => editSlot(s.id, { label: t })}
+              onChangeText={(t) => editLabel(s.id, t)}
             />
             <View style={{ marginTop: 8 }}>
-              <Input
-                value={s.numbers}
-                placeholder="03-12-27-..."
-                onChangeText={(t) => editSlot(s.id, { numbers: t })}
-              />
+              <Text style={styles.numbers}>{s.numbers}</Text>
             </View>
-            <View style={styles.savedActions}>
-              <Button title="Save" onPress={() => persist(savedSets)} variant="secondary" />
-              <Button title="Replace" onPress={() => replaceSlot(s.id)} variant="secondary" />
-              <Button title="Delete" onPress={() => deleteSlot(s.id)} variant="danger" />
+            <Text style={styles.conditions}>{describe(s.config)}</Text>
+            <View style={styles.slipActions}>
+              <View style={{ flex: 1 }}>
+                <Button title="Reroll ↻" onPress={() => reroll(s.id)} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Delete"
+                  onPress={() => deleteSlot(s.id)}
+                  variant="danger"
+                />
+              </View>
             </View>
           </View>
         ))}
@@ -232,31 +246,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cell: { width: '48%' },
-  resultLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: '#eee',
-  },
-  line: { fontSize: 17, fontFamily: 'monospace', letterSpacing: 1, flex: 1, marginRight: 8 },
   errorCard: { marginBottom: 14, borderColor: '#fecaca', backgroundColor: '#fef2f2' },
   errorText: { color: palette.danger, fontWeight: '600' },
   muted: { color: '#94a3b8', fontStyle: 'italic' },
-  notebookHeader: {
+  slipHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
-  savedRow: {
-    marginTop: 10,
-    padding: 10,
+  slipRow: {
+    marginTop: 12,
+    padding: 12,
     backgroundColor: palette.surfaceAlt,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: palette.border,
   },
-  savedActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, gap: 6 },
+  numbers: {
+    fontSize: 20,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    letterSpacing: 1,
+    color: palette.text,
+  },
+  conditions: { fontSize: 12, color: palette.subtext, marginTop: 4 },
+  slipActions: { flexDirection: 'row', gap: 10, marginTop: 10 },
 });

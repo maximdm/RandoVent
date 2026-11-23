@@ -1,5 +1,5 @@
 import { LotteryConfig } from '../core/MatchConfig';
-import { Rng, createRng, pickInt } from '../core/Distributions';
+import { Rng, createRng, pickInt, randomSeed } from '../core/Distributions';
 
 // Typed error for invalid lottery configuration (agents.md §7).
 export class LotteryError extends Error {
@@ -62,7 +62,7 @@ export function generateLottery(config: LotteryConfig): string | string[] {
     sets,
   };
 
-  const rng = createRng(seed ?? 0);
+  const rng = createRng(seed ?? randomSeed());
   const results: string[] = [];
   for (let s = 0; s < sets; s++) results.push(drawSet(rng, normalized));
 

@@ -17,6 +17,12 @@ export function createRng(seed: number): Rng {
   };
 }
 
+// A fresh random 32-bit seed, so callers that omit a seed get a different draw
+// every time (matches the match-simulator behaviour).
+export function randomSeed(): number {
+  return Math.floor(Math.random() * 0xffffffff);
+}
+
 // Poisson sample via Knuth's algorithm (well-suited to the small-to-moderate
 // lambda values used across sports, e.g. soccer ~1.1-1.6, hockey ~2.6-3.2).
 export function poisson(lambda: number, rng: Rng): number {

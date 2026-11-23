@@ -7,15 +7,10 @@ import { MatchOptionsScreen } from './src/screens/MatchOptionsScreen';
 import { LiveMatchScreen } from './src/screens/LiveMatchScreen';
 import { MatchSummaryScreen } from './src/screens/MatchSummaryScreen';
 import { LotteryScreen } from './src/screens/LotteryScreen';
-import { getEngine, SportKey, MatchConfig, SimResult } from './src/engine';
+import { getEngine, SportKey, MatchConfig, SimResult, randomSeed } from './src/engine';
 
 function simulate(config: MatchConfig): SimResult {
   return getEngine(config.sport).simulate(config);
-}
-
-// A fresh random 32-bit seed, so a new match without an explicit seed differs every time.
-function randomSeed(): number {
-  return Math.floor(Math.random() * 0xffffffff);
 }
 
 type TopView = 'home' | 'pick' | 'options' | 'match' | 'lottery';
