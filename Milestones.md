@@ -181,3 +181,34 @@ note (label). Built in `src/storage/savedSets.ts`:
 > Note: the project's npm policy blocks native-module script execution, so AsyncStorage is not yet
 > installed; the feature works in-session and will persist to disk once the package is added and the
 > factory's `require` is swapped for a static import.
+
+## M9 — Match Statistics Panel (all sports)
+**Status:** ✅ Done. The Match Summary now shows a **Match Stats** table (per-team tallies derived
+from the event log) plus **period / set breakdowns**, covering all nine sports:
+- `computeMatchStats(sim)` in `src/engine/stats.ts`: per-team counts of every event kind (goals,
+  corners, fouls, cards, saves, offsides, substitutions, penalties, 2/3-pt shots, free throws,
+  tries, conversions, penalty/drop goals, rally points, **service breaks**, shootout goals, etc.)
+  surfaced via `STAT_LABELS` — only rows with data for at least one team are shown.
+- **Period Breakdown** for period-based sports: football & rugby (1st/2nd half), hockey (Period 1–3),
+  basketball (Q1–Q4 / OT) — the latter read from authoritative `quarterScores` metadata.
+- **Set Breakdown** for set-based sports: tennis / volleyball (sets) and table-tennis (games) from
+  `setScores` / `gameScores` metadata.
+- **Tennis service breaks**: new `BREAK` event kind, emitted by `TennisEngine` when the returner wins
+  a game (serve now alternates each game). `DEUCE` / `TIEBREAK` counts also surfaced.
+- `EventFeed` now badges `BREAK` like other key events.
+
+**Bug fixed (latent, surfaced by this feature):** `BasketballEngine.recordQuarter` subtracted the
+previous *delta* instead of the running cumulative, so per-quarter scores were wrong from Q3 onward.
+Now uses explicit cumulative trackers; quarter scores sum exactly to the final score (verified by a
+new invariant test). Also fixed rugby `half` (was always `1`; now 1st/2nd half by minute) so the
+half breakdown is correct.
+
+**Acceptance**
+- Football corners tally equals the `CORNER` event count; goal tallies equal team scores and sum to
+  the final across both halves.
+- Tennis service breaks occur across seeds; set breakdown length equals sets played.
+- Basketball quarter breakdown sums to the final score; hockey shows 3 periods.
+- `computeMatchStats` runs without error for all nine sports.
+
+> Note: stats are reviewed in `MatchSummaryScreen`. Surfacing a compact live-stats strip in
+> `LiveMatchScreen` is a possible follow-up but not required.

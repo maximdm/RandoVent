@@ -17,6 +17,7 @@ export type SportEventKind =
   | 'SET_WIN'
   | 'TIEBREAK'
   | 'DEUCE'
+  | 'BREAK' // service break (returner won the game)
   | 'GAME'
   // Basketball
   | 'POINTS_2'

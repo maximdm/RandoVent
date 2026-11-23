@@ -37,8 +37,11 @@ export class RugbyEngine implements SportEngine {
     const scoreTeam = (team: 'A' | 'B', teamName: string, roster: string[], triesLambda: number, pensLambda: number, dropsLambda: number) => {
       let pts = 0;
       const add = (kind: SportEventKind, p: number, player?: string) => {
+        const minute = pickInt(1, 80, rng);
+        // Rugby has two 40-minute halves.
+        const half: 1 | 2 = minute <= 40 ? 1 : 2;
         pts += p;
-        events.push({ id: id(), minute: pickInt(1, 80, rng), half: 1, kind, team, detail: `${teamName} +${p}${player ? ` — ${player}` : ''}`, player });
+        events.push({ id: id(), minute, half, kind, team, detail: `${teamName} +${p}${player ? ` — ${player}` : ''}`, player });
       };
       const tries = poisson(triesLambda, rng);
       for (let i = 0; i < tries; i++) {

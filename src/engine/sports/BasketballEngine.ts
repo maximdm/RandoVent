@@ -143,9 +143,12 @@ export class BasketballEngine implements SportEngine {
       }
     };
 
+    let cumA = 0;
+    let cumB = 0;
     const recordQuarter = () => {
-      const prev = quarterScores.length ? quarterScores[quarterScores.length - 1] : ([0, 0] as [number, number]);
-      quarterScores.push([ptsA - prev[0], ptsB - prev[1]]);
+      quarterScores.push([ptsA - cumA, ptsB - cumB]);
+      cumA = ptsA;
+      cumB = ptsB;
     };
 
     let lastMinute = 4 * qLen;

@@ -35,15 +35,29 @@ export class TennisEngine implements SportEngine {
       let gA = 0;
       let gB = 0;
       let tiebreak = false;
+      // Serve alternates each game (standard tennis). A game won by the returner
+      // is a service break.
+      let server: 'A' | 'B' = 'A';
 
       while (true) {
-        if (bernoulli(pA, rng)) gA++;
+        const winner: 'A' | 'B' = bernoulli(pA, rng) ? 'A' : 'B';
+        if (winner !== server) {
+          events.push({
+            id: id(),
+            minute: setNum,
+            half: setNum,
+            kind: 'BREAK',
+            team: winner,
+            detail: `Service break — ${winner === 'A' ? playerA : playerB}`,
+          });
+        }
+        if (winner === 'A') gA++;
         else gB++;
 
         // Deuce: both players at 40 (3 games/points each) — emit each time the
         // score returns to equality from 3 upward.
         if (gA === gB && gA >= 3) {
-          events.push({ id: id(), minute: setNum, half: 1, kind: 'DEUCE', team: null, detail: `Deuce in set ${setNum}` });
+          events.push({ id: id(), minute: setNum, half: setNum, kind: 'DEUCE', team: null, detail: `Deuce in set ${setNum}` });
         }
 
         if ((gA >= 6 || gB >= 6) && Math.abs(gA - gB) >= 2) break;
@@ -62,6 +76,8 @@ export class TennisEngine implements SportEngine {
           tiebreak = true;
           break;
         }
+        // Alternate serve for the next game.
+        server = server === 'A' ? 'B' : 'A';
       }
 
       setScores.push([gA, gB]);
@@ -70,9 +86,9 @@ export class TennisEngine implements SportEngine {
       else setsB++;
 
       const detail = `Set ${setNum}: ${playerA} ${gA}-${gB} ${playerB} (${setWinner === 'A' ? playerA : playerB} wins)`;
-      events.push({ id: id(), minute: setNum, half: 1, kind: 'SET_WIN', team: setWinner, detail });
+      events.push({ id: id(), minute: setNum, half: setNum, kind: 'SET_WIN', team: setWinner, detail });
       if (tiebreak) {
-        events.push({ id: id(), minute: setNum, half: 1, kind: 'TIEBREAK', team: null, detail: `Tiebreak decided set ${setNum}` });
+        events.push({ id: id(), minute: setNum, half: setNum, kind: 'TIEBREAK', team: null, detail: `Tiebreak decided set ${setNum}` });
       }
       setNum++;
     }
