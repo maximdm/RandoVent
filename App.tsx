@@ -8,6 +8,7 @@ import { LiveMatchScreen } from './src/screens/LiveMatchScreen';
 import { MatchSummaryScreen } from './src/screens/MatchSummaryScreen';
 import { LotteryScreen } from './src/screens/LotteryScreen';
 import { getEngine, SportKey, MatchConfig, SimResult, randomSeed } from './src/engine';
+import { ThemeProvider, useTheme, useThemeControls } from './src/theme';
 
 function simulate(config: MatchConfig): SimResult {
   return getEngine(config.sport).simulate(config);
@@ -17,6 +18,16 @@ type TopView = 'home' | 'pick' | 'options' | 'match' | 'lottery';
 type MatchView = 'live' | 'summary';
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppRoot />
+    </ThemeProvider>
+  );
+}
+
+function AppRoot() {
+  const theme = useTheme();
+  const { isDark } = useThemeControls();
   const [view, setView] = useState<TopView>('home');
   const [selectedSport, setSelectedSport] = useState<SportKey>(SportKey.FOOTBALL);
   const [matchView, setMatchView] = useState<MatchView>('live');
@@ -43,8 +54,8 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="auto" />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       {view === 'home' && (
         <HomeScreen
           onMatch={() => setView('pick')}
@@ -93,5 +104,5 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
 });

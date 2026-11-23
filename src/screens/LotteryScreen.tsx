@@ -25,8 +25,8 @@ import {
   Button,
   Segmented,
   SectionTitle,
-  palette,
 } from '../components/ui';
+import { useTheme } from '../theme';
 
 interface Props {
   onBack: () => void;
@@ -64,6 +64,7 @@ function describe(config: SlipSetConfig): string {
 }
 
 export function LotteryScreen({ onBack }: Props) {
+  const theme = useTheme();
   const [count, setCount] = useState('6');
   const [min, setMin] = useState('1');
   const [max, setMax] = useState('49');
@@ -279,8 +280,13 @@ export function LotteryScreen({ onBack }: Props) {
       </Card>
 
       {error && (
-        <Card style={styles.errorCard}>
-          <Text style={styles.errorText}>⚠ {error}</Text>
+        <Card
+          style={[
+            styles.errorCard,
+            { borderColor: theme.dangerBorder, backgroundColor: theme.dangerBg },
+          ]}
+        >
+          <Text style={[styles.errorText, { color: theme.danger }]}>⚠ {error}</Text>
         </Card>
       )}
 
@@ -293,7 +299,7 @@ export function LotteryScreen({ onBack }: Props) {
         </View>
 
         {slips.length === 0 && (
-          <Text style={styles.muted}>
+          <Text style={[styles.muted, { color: theme.muted }]}>
             No slips yet — generate a set above (it creates a new slip) or tap “＋ New Slip”.
           </Text>
         )}
@@ -301,14 +307,17 @@ export function LotteryScreen({ onBack }: Props) {
         {slips.map((slip) => {
           const isOpen = !slip.collapsed;
           return (
-            <View key={slip.id} style={styles.slipCard}>
+            <View
+              key={slip.id}
+              style={[styles.slipCard, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+            >
               <View style={styles.slipTop}>
                 <Pressable
                   onPress={() => toggleCollapse(slip.id)}
                   hitSlop={8}
                   style={styles.chevron}
                 >
-                  <Text style={styles.chevronText}>{isOpen ? '▼' : '▶'}</Text>
+                  <Text style={[styles.chevronText, { color: theme.subtext }]}>{isOpen ? '▼' : '▶'}</Text>
                 </Pressable>
                 <View style={{ flex: 1 }}>
                   <Input
@@ -317,7 +326,7 @@ export function LotteryScreen({ onBack }: Props) {
                     onChangeText={(t) => renameSlipById(slip.id, t)}
                   />
                 </View>
-                <Text style={styles.countBadge}>
+                <Text style={[styles.countBadge, { color: theme.subtext }]}>
                   {slip.sets.length}/{MAX_SLIP_SETS}
                 </Text>
                 <Pressable
@@ -332,19 +341,26 @@ export function LotteryScreen({ onBack }: Props) {
               {isOpen && (
                 <View style={styles.slipBody}>
                   {slip.sets.length === 0 && (
-                    <Text style={styles.muted}>Empty — add sets from the generator above.</Text>
+                    <Text style={[styles.muted, { color: theme.muted }]}>
+                      Empty — add sets from the generator above.
+                    </Text>
                   )}
                   {slip.sets.map((s: SlipSet) => (
-                    <View key={s.id} style={styles.setRow}>
+                    <View
+                      key={s.id}
+                      style={[styles.setRow, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                    >
                       <Input
                         value={s.label}
                         placeholder="Note / label"
                         onChangeText={(t) => editLabel(slip.id, s.id, t)}
                       />
                       <View style={{ marginTop: 8 }}>
-                        <Text style={styles.numbers}>{s.numbers}</Text>
+                        <Text style={[styles.numbers, { color: theme.text }]}>{s.numbers}</Text>
                       </View>
-                      <Text style={styles.conditions}>{describe(s.config)}</Text>
+                      <Text style={[styles.conditions, { color: theme.subtext }]}>
+                        {describe(s.config)}
+                      </Text>
                       <View style={styles.setActions}>
                         <View style={{ flex: 1 }}>
                           <Button title="Reroll ↻" onPress={() => reroll(slip.id, s.id)} />
@@ -372,16 +388,25 @@ export function LotteryScreen({ onBack }: Props) {
 }
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const theme = useTheme();
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
-        active && styles.chipActive,
+        { backgroundColor: theme.chipBg, borderColor: theme.border },
+        active && { backgroundColor: theme.primary, borderColor: theme.primary },
         pressed && styles.chipPressed,
       ]}
     >
-      <Text style={[styles.chipText, active && styles.chipTextActive]} numberOfLines={1}>
+      <Text
+        style={[
+          styles.chipText,
+          { color: theme.chipText },
+          active && styles.chipTextActive,
+        ]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
     </Pressable>
@@ -391,9 +416,9 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
 const styles = StyleSheet.create({
   grid2: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   cell: { width: '48%' },
-  errorCard: { marginBottom: 14, borderColor: '#fecaca', backgroundColor: '#fef2f2' },
-  errorText: { color: palette.danger, fontWeight: '600' },
-  muted: { color: '#94a3b8', fontStyle: 'italic' },
+  errorCard: { marginBottom: 14 },
+  errorText: { fontWeight: '600' },
+  muted: { fontStyle: 'italic' },
   slipHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -405,33 +430,25 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 999,
-    backgroundColor: palette.surfaceAlt,
     borderWidth: 1,
-    borderColor: palette.border,
     marginRight: 8,
   },
-  chipActive: {
-    backgroundColor: palette.primary,
-    borderColor: palette.primary,
-  },
+  chipActive: {},
   chipPressed: { opacity: 0.8 },
-  chipText: { color: palette.subtext, fontWeight: '600', fontSize: 13 },
+  chipText: { fontWeight: '600', fontSize: 13 },
   chipTextActive: { color: '#fff' },
   slipCard: {
     marginTop: 12,
     padding: 10,
-    backgroundColor: palette.surfaceAlt,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: palette.border,
   },
   slipTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   chevron: { paddingHorizontal: 4 },
-  chevronText: { fontSize: 14, color: palette.subtext },
+  chevronText: { fontSize: 14 },
   countBadge: {
     fontSize: 12,
     fontWeight: '700',
-    color: palette.subtext,
     minWidth: 34,
     textAlign: 'center',
   },
@@ -441,18 +458,15 @@ const styles = StyleSheet.create({
   setRow: {
     marginTop: 10,
     padding: 10,
-    backgroundColor: palette.surface,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: palette.border,
   },
   numbers: {
     fontSize: 18,
     fontWeight: '700',
     fontFamily: 'monospace',
     letterSpacing: 1,
-    color: palette.text,
   },
-  conditions: { fontSize: 12, color: palette.subtext, marginTop: 4 },
+  conditions: { fontSize: 12, marginTop: 4 },
   setActions: { flexDirection: 'row', gap: 10, marginTop: 10 },
 });

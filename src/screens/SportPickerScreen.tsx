@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { SportKey } from '../engine';
 import { ScrollScreen, Card, Button } from '../components/ui';
+import { useTheme } from '../theme';
 
 interface Props {
   onPick: (sport: SportKey) => void;
@@ -20,14 +21,15 @@ const SPORTS: Array<{ key: SportKey; label: string; tag: string; emoji: string }
 ];
 
 export function SportPickerScreen({ onPick, onBack }: Props) {
+  const theme = useTheme();
   return (
     <ScrollScreen>
       <View style={styles.grid}>
         {SPORTS.map((s) => (
           <Card key={s.key} style={styles.cell}>
             <Text style={styles.emoji}>{s.emoji}</Text>
-            <Text style={styles.label}>{s.label}</Text>
-            <Text style={styles.tag}>{s.tag}</Text>
+            <Text style={[styles.label, { color: theme.text }]}>{s.label}</Text>
+            <Text style={[styles.tag, { color: theme.subtext }]}>{s.tag}</Text>
             <View style={styles.spacer} />
             <Button title="Select" onPress={() => onPick(s.key)} block />
           </Card>
@@ -51,7 +53,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emoji: { fontSize: 30 },
-  label: { fontSize: 17, fontWeight: '700', color: '#0f172a', marginTop: 6 },
-  tag: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  label: { fontSize: 17, fontWeight: '700', marginTop: 6 },
+  tag: { fontSize:12, marginTop: 2 },
   spacer: { flex: 1, minHeight: 10 },
 });

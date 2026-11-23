@@ -321,3 +321,31 @@ visually consistent and more usable:
 
 > Note: `LotteryScreen` previously referenced a single `SlipSet[]`; it now drives the `Slip[]` model.
 > No engine logic changed — only storage shape, screen wiring, and the persistence key/format.
+
+## M14 — Dark Mode (light/dark/system theme)
+**Status:** ✅ Done. Centralised all colours behind a `Theme` token set and a `ThemeProvider`.
+- `src/theme.tsx` defines `lightTheme` and `darkTheme` (full token set: bg, surface, surfaceAlt,
+  border, text, subtext, textDim, muted, primary, teamA/teamB, danger, feed/table tints, etc.) plus a
+  `ThemeMode = 'system' | 'light' | 'dark'`. `ThemeProvider` follows `useColorScheme()` when in
+  `system` mode, exposes `{ mode, setMode }` via `useThemeControls`, and persists the choice with the
+  same dynamic-require storage trick as the slip store (key `randovent.themeMode`). `useTheme()`
+  returns the active token object.
+- `src/components/ui.tsx` rebuilt so `Screen/ScrollScreen/Card/Title/Button/Segmented/Field/Input`
+  read every colour from the active theme (styles built per-theme). `palette` export removed.
+- All screens migrated off hard-coded hex: `LiveMatchScreen`, `MatchSummaryScreen`, `MatchStatsView`
+  (stat tables + period/set breakdowns), `EventFeed` (team accents + row background), `LotteryScreen`
+  (chips, slip cards, set rows, error card), `HomeScreen`, `SportPickerScreen`, `MatchOptionsScreen`.
+  `App.tsx` wrapped in `<ThemeProvider>` and sets the `SafeAreaView` background + `StatusBar` style
+  (light/dark) from the theme.
+- **Appearance control**: `HomeScreen` shows a System / Light / Dark `Segmented` that drives `setMode`;
+  the choice persists across restarts (when a storage backend is linked).
+
+**Acceptance**
+- `tsc --noEmit` clean; tests pass (109 — adds `theme.test.ts` verifying both themes exist and differ
+  on key tokens; prior 107 still green).
+- Every visible surface recolours in dark mode (no dark-on-dark text); team accents stay distinguishable.
+- Theme choice persists; `system` tracks the OS setting.
+- No engine logic touched — purely presentation + a new theme module.
+
+> Same storage caveat as M12/M13: theme persistence only writes to disk when a storage backend is
+> linked; in this dev sandbox it falls back to `system` for the session.

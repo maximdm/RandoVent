@@ -4,7 +4,8 @@ import { EventFeed } from '../components/EventFeed';
 import { MatchStatsView } from '../components/MatchStatsView';
 import { SimResult, runningScore } from '../engine';
 import { useMatchPlayback } from '../hooks/useMatchPlayback';
-import { Screen, Card, Button, Segmented, palette } from '../components/ui';
+import { Screen, Card, Button, Segmented } from '../components/ui';
+import { useTheme } from '../theme';
 
 interface Props {
   match: SimResult;
@@ -22,6 +23,7 @@ interface AcceleratedProps {
   onSummary: () => void;
 }
 function AcceleratedView({ match, onSummary }: AcceleratedProps) {
+  const theme = useTheme();
   const { snapshot, status, pause, resume, reset, jumpToEnd } = useMatchPlayback(match);
   const [a, b] = runningScore(match, snapshot.revealed);
   const { teamAName, teamBName } = match.metadata as { teamAName: string; teamBName: string };
@@ -32,16 +34,16 @@ function AcceleratedView({ match, onSummary }: AcceleratedProps) {
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.scoreRow}>
-        <Text style={[styles.bigScore, { color: palette.teamA }]}>{a}</Text>
-        <Text style={styles.scoreDash}>–</Text>
-        <Text style={[styles.bigScore, { color: palette.teamB }]}>{b}</Text>
+        <Text style={[styles.bigScore, { color: theme.teamA }]}>{a}</Text>
+        <Text style={[styles.scoreDash, { color: theme.subtext }]}>–</Text>
+        <Text style={[styles.bigScore, { color: theme.teamB }]}>{b}</Text>
       </View>
-      <Text style={styles.clock}>
+      <Text style={[styles.clock, { color: theme.subtext }]}>
         Match clock {Math.floor(snapshot.currentMinute)} / {snapshot.totalMinutes} ·{' '}
         {snapshot.revealedCount}/{snapshot.totalCount} events
       </Text>
-      <View style={styles.progress}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+      <View style={[styles.progress, { backgroundColor: theme.progressBg }]}>
+        <View style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: theme.primary }]} />
       </View>
 
       <View style={styles.feed}>
@@ -62,6 +64,7 @@ function AcceleratedView({ match, onSummary }: AcceleratedProps) {
 }
 
 export function LiveMatchScreen({ match, onSummary, onReplay, onAllSports }: Props) {
+  const theme = useTheme();
   const [mode, setMode] = useState<Mode>('INSTANT');
   const [liveView, setLiveView] = useState<LiveView>('feed');
   const [a, b] = runningScore(match, match.events);
@@ -75,16 +78,16 @@ export function LiveMatchScreen({ match, onSummary, onReplay, onAllSports }: Pro
     <Screen>
       <Card style={styles.header}>
         <View style={styles.teamNames}>
-          <Text style={[styles.teamName, { color: palette.teamA }]}>{teamAName}</Text>
-          <Text style={styles.teamName}>vs</Text>
-          <Text style={[styles.teamName, { color: palette.teamB }]}>{teamBName}</Text>
+          <Text style={[styles.teamName, { color: theme.teamA }]}>{teamAName}</Text>
+          <Text style={[styles.teamName, { color: theme.subtext }]}>vs</Text>
+          <Text style={[styles.teamName, { color: theme.teamB }]}>{teamBName}</Text>
         </View>
         <View style={styles.scoreRow}>
-          <Text style={[styles.bigScore, { color: palette.teamA }]}>{a}</Text>
-          <Text style={styles.scoreDash}>–</Text>
-          <Text style={[styles.bigScore, { color: palette.teamB }]}>{b}</Text>
+          <Text style={[styles.bigScore, { color: theme.teamA }]}>{a}</Text>
+          <Text style={[styles.scoreDash, { color: theme.subtext }]}>–</Text>
+          <Text style={[styles.bigScore, { color: theme.teamB }]}>{b}</Text>
         </View>
-        <Text style={styles.seed}>Seed: {seed === undefined ? '—' : seed}</Text>
+        <Text style={[styles.seed, { color: theme.subtext }]}>Seed: {seed === undefined ? '—' : seed}</Text>
       </Card>
 
       <Segmented
@@ -143,12 +146,11 @@ const styles = StyleSheet.create({
   clock: { fontSize: 13, color: '#64748b', textAlign: 'center', marginBottom: 6 },
   progress: {
     height: 6,
-    backgroundColor: '#e2e8f0',
     borderRadius: 3,
     marginBottom: 8,
     overflow: 'hidden',
   },
-  progressFill: { height: 6, backgroundColor: palette.primary },
+  progressFill: { height: 6 },
   feed: { flex: 1 },
   content: { flex: 1, marginTop: 12 },
   controls: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 6 },

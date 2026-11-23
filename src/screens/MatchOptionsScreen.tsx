@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text } from 'react-native';
 import { SportKey, MatchConfig } from '../engine';
+import { useTheme } from '../theme';
 import {
   ScrollScreen,
   Card,
@@ -61,6 +62,7 @@ const SPORT_LABEL: Record<SportKey, string> = {
 };
 
 export function MatchOptionsScreen({ sport, onStart, onBack }: Props) {
+  const theme = useTheme();
   const [teamAName, setTeamAName] = useState('TeamA');
   const [teamBName, setTeamBName] = useState('TeamB');
   const [seedText, setSeedText] = useState('');
@@ -192,7 +194,7 @@ export function MatchOptionsScreen({ sport, onStart, onBack }: Props) {
 
       {(sport === SportKey.FOOTBALL || sport === SportKey.HOCKEY || sport === SportKey.E_SOCCER) && (
         <Card style={{ marginBottom: 14 }}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>
+          <Text style={{ color: theme.subtext, fontSize: 14 }}>
             No extra options — standard match format.
           </Text>
         </Card>

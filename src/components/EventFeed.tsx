@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { SimEvent } from '../engine';
+import { useTheme } from '../theme';
 
 interface EventFeedProps {
   events: SimEvent[];
@@ -24,12 +25,19 @@ const KEY_EVENTS = new Set<SimEvent['kind']>([
 ]);
 
 const Row = memo(function Row({ item }: { item: SimEvent }) {
+  const theme = useTheme();
   const isKey = KEY_EVENTS.has(item.kind);
-  const accent = item.team === 'A' ? '#2563eb' : item.team === 'B' ? '#dc2626' : '#94a3b8';
+  const accent =
+    item.team === 'A' ? theme.teamA : item.team === 'B' ? theme.teamB : theme.subtext;
   const label = item.kind.replace(/_/g, ' ');
   return (
-    <View style={[styles.row, { borderLeftColor: accent }]}>
-      <Text style={styles.minute}>{item.minute}'</Text>
+    <View
+      style={[
+        styles.row,
+        { borderLeftColor: accent, backgroundColor: theme.feedRowBg },
+      ]}
+    >
+      <Text style={[styles.minute, { color: theme.subtext }]}>{item.minute}'</Text>
       {isKey ? (
         <View style={[styles.badge, { backgroundColor: accent }]}>
           <Text style={styles.badgeText}>{label}</Text>
@@ -37,7 +45,7 @@ const Row = memo(function Row({ item }: { item: SimEvent }) {
       ) : (
         <Text style={[styles.kind, { color: accent }]}>{label}</Text>
       )}
-      <Text style={styles.detail}>{item.detail}</Text>
+      <Text style={[styles.detail, { color: theme.textDim }]}>{item.detail}</Text>
     </View>
   );
 });
@@ -63,15 +71,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingLeft: 12,
     borderLeftWidth: 3,
-    borderLeftColor: '#cbd5e1',
     marginBottom: 6,
-    backgroundColor: '#fff',
     borderRadius: 8,
     gap: 8,
   },
-  minute: { width: 38, fontWeight: '700', color: '#475569' },
+  minute: { width: 38, fontWeight: '700' },
   kind: { width: 96, fontWeight: '600', fontSize: 12 },
   badge: { width: 96, borderRadius: 4, paddingVertical: 2, paddingHorizontal: 4 },
   badgeText: { color: '#fff', fontWeight: '700', fontSize: 11, textAlign: 'center' },
-  detail: { flex: 1, fontSize: 13, color: '#334155' },
+  detail: { flex: 1, fontSize: 13 },
 });

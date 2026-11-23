@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { SimResult, computePlayerStats, topBy, PlayerStat } from '../engine';
 import { MatchStatsSections } from '../components/MatchStatsView';
-import { ScrollScreen, Card, Button, SectionTitle, palette } from '../components/ui';
+import { ScrollScreen, Card, Button, SectionTitle } from '../components/ui';
+import { useTheme } from '../theme';
 
 interface Props {
   match: SimResult;
@@ -17,12 +18,13 @@ const WINNER_LABEL: Record<SimResult['winner'], string> = {
 };
 
 function PlayerTable({ team, rows }: { team: string; rows: PlayerStat[] }) {
+  const theme = useTheme();
   if (rows.length === 0) return null;
   return (
     <View style={styles.teamBlock}>
       <Text style={styles.teamName}>{team}</Text>
       {rows.map((r) => (
-        <Text key={r.name} style={styles.playerRow}>
+        <Text key={r.name} style={[styles.playerRow, { color: theme.textDim }]}>
           {r.name}: {r.points} pts{hasFoulsRow(r) ? `, ${r.fouls} fouls` : ''}
         </Text>
       ))}
@@ -35,6 +37,7 @@ function hasFoulsRow(r: PlayerStat): boolean {
 }
 
 export function MatchSummaryScreen({ match, onBack, onReplay, onAllSports }: Props) {
+  const theme = useTheme();
   const { teamAName, teamBName, seed } = match.metadata as {
     teamAName: string;
     teamBName: string;
@@ -48,17 +51,17 @@ export function MatchSummaryScreen({ match, onBack, onReplay, onAllSports }: Pro
     <ScrollScreen>
       <Card style={styles.hero}>
         <View style={styles.teamNames}>
-          <Text style={[styles.teamName, { color: palette.teamA }]}>{teamAName}</Text>
+          <Text style={[styles.teamName, { color: theme.teamA }]}>{teamAName}</Text>
           <Text style={styles.teamName}>vs</Text>
-          <Text style={[styles.teamName, { color: palette.teamB }]}>{teamBName}</Text>
+          <Text style={[styles.teamName, { color: theme.teamB }]}>{teamBName}</Text>
         </View>
         <View style={styles.scoreRow}>
-          <Text style={[styles.bigScore, { color: palette.teamA }]}>{match.scoreA}</Text>
-          <Text style={styles.scoreDash}>–</Text>
-          <Text style={[styles.bigScore, { color: palette.teamB }]}>{match.scoreB}</Text>
+          <Text style={[styles.bigScore, { color: theme.teamA }]}>{match.scoreA}</Text>
+          <Text style={[styles.scoreDash, { color: theme.subtext }]}>–</Text>
+          <Text style={[styles.bigScore, { color: theme.teamB }]}>{match.scoreB}</Text>
         </View>
-        <Text style={styles.result}>{WINNER_LABEL[match.winner]}</Text>
-        <Text style={styles.meta}>
+        <Text style={[styles.result, { color: theme.text }]}>{WINNER_LABEL[match.winner]}</Text>
+        <Text style={[styles.meta, { color: theme.subtext }]}>
           Seed: {seed === undefined ? '—' : seed} · {match.events.length} events
         </Text>
       </Card>
@@ -105,8 +108,8 @@ const styles = StyleSheet.create({
   scoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
   bigScore: { fontSize: 44, fontWeight: '800' },
   scoreDash: { fontSize: 32, color: '#94a3b8' },
-  result: { fontSize: 16, fontWeight: '700', color: palette.text, marginTop: 4 },
-  meta: { fontSize: 13, color: palette.subtext, marginTop: 2 },
+  result: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginTop: 4 },
+  meta: { fontSize: 13, color: '#64748b', marginTop: 2 },
   teamBlock: { marginBottom: 10 },
   playerRow: { fontSize: 14, color: '#334155', paddingVertical: 2 },
 });
