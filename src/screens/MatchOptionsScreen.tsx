@@ -45,7 +45,7 @@ const SPORT_LABEL: Record<SportKey, string> = {
 export function MatchOptionsScreen({ sport, onStart, onBack }: Props) {
   const [teamAName, setTeamAName] = useState('TeamA');
   const [teamBName, setTeamBName] = useState('TeamB');
-  const [seedText, setSeedText] = useState('12345');
+  const [seedText, setSeedText] = useState('');
 
   // Per-sport option state (only the relevant one is used when building config).
   const [tennisFormat, setTennisFormat] = useState<'BO3' | 'BO5'>('BO3');
@@ -56,12 +56,20 @@ export function MatchOptionsScreen({ sport, onStart, onBack }: Props) {
   const [bestOf, setBestOf] = useState<1 | 3 | 5>(3);
   const [roundTarget, setRoundTarget] = useState<13 | 16>(13);
 
-  const seed = Number(seedText);
-  const validSeed = Number.isFinite(seed) && seed >= 0;
+  // Blank seed => a random match each time. A typed non-negative integer is honoured
+  // for reproducible results.
+  const trimmed = seedText.trim();
+  const parsedSeed = trimmed === '' ? undefined : Number(trimmed);
+  const validSeed = parsedSeed === undefined || (Number.isInteger(parsedSeed) && parsedSeed >= 0);
 
   const buildConfig = (): MatchConfig => {
     const participants = { teamAName, teamBName };
-    const base = { sport, mode: 'INSTANT' as const, seed: validSeed ? seed : 0, participants };
+    const base = {
+      sport,
+      mode: 'INSTANT' as const,
+      ...(parsedSeed !== undefined ? { seed: parsedSeed } : {}),
+      participants,
+    };
     switch (sport) {
       case SportKey.TENNIS:
         return { ...base, options: { matchFormat: tennisFormat } } as MatchConfig;
@@ -93,12 +101,13 @@ export function MatchOptionsScreen({ sport, onStart, onBack }: Props) {
         <TextInput style={styles.input} value={teamBName} onChangeText={setTeamBName} />
       </View>
       <View style={styles.field}>
-        <Text style={styles.label}>Seed (any non-negative integer)</Text>
+        <Text style={styles.label}>Seed (optional — leave blank for a random match)</Text>
         <TextInput
           style={styles.input}
           value={seedText}
           onChangeText={setSeedText}
           keyboardType="numeric"
+          placeholder="blank = random"
         />
       </View>
 
@@ -137,7 +146,7 @@ export function MatchOptionsScreen({ sport, onStart, onBack }: Props) {
         <Button
           title="Simulate"
           onPress={() => onStart(buildConfig())}
-          disabled={!validSeed}
+          disabled={seedText.trim() !== '' && !validSeed}
         />
         <Button title="Back" onPress={onBack} />
       </View>

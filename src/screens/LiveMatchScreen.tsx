@@ -59,13 +59,18 @@ export function LiveMatchScreen({ match, onSummary, onNewMatch }: Props) {
   const [mode, setMode] = useState<Mode>('INSTANT');
   const [liveView, setLiveView] = useState<LiveView>('feed');
   const [a, b] = runningScore(match, match.events);
-  const { teamAName, teamBName } = match.metadata as { teamAName: string; teamBName: string };
+  const { teamAName, teamBName, seed } = match.metadata as {
+    teamAName: string;
+    teamBName: string;
+    seed?: number;
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.score}>
         {teamAName} {a} - {b} {teamBName}
       </Text>
+      <Text style={styles.seed}>Seed: {seed === undefined ? '—' : seed}</Text>
 
       <View style={styles.modeToggle}>
         <Button title="Instant" onPress={() => setMode('INSTANT')} />
@@ -94,6 +99,7 @@ export function LiveMatchScreen({ match, onSummary, onNewMatch }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   score: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
+  seed: { fontSize: 13, color: '#777', textAlign: 'center', marginBottom: 8 },
   clock: { fontSize: 13, color: '#555', textAlign: 'center', marginBottom: 6 },
   progress: {
     height: 4,

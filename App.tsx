@@ -13,6 +13,11 @@ function simulate(config: MatchConfig): SimResult {
   return getEngine(config.sport).simulate(config);
 }
 
+// A fresh random 32-bit seed, so a new match without an explicit seed differs every time.
+function randomSeed(): number {
+  return Math.floor(Math.random() * 0xffffffff);
+}
+
 type TopView = 'home' | 'pick' | 'options' | 'match' | 'lottery';
 type MatchView = 'live' | 'summary';
 
@@ -23,7 +28,10 @@ export default function App() {
   const [match, setMatch] = useState<SimResult | null>(null);
 
   const start = (config: MatchConfig) => {
-    setMatch(simulate(config));
+    const seed = config.seed ?? randomSeed();
+    const sim = simulate({ ...config, seed });
+    // Record the seed actually used so the result is reproducible from the UI.
+    setMatch({ ...sim, metadata: { ...sim.metadata, seed } });
     setMatchView('live');
     setView('match');
   };

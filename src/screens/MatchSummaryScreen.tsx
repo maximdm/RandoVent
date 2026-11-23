@@ -14,7 +14,11 @@ const WINNER_LABEL: Record<SimResult['winner'], string> = {
 };
 
 export function MatchSummaryScreen({ match, onBack }: Props) {
-  const { teamAName, teamBName } = match.metadata as { teamAName: string; teamBName: string };
+  const { teamAName, teamBName, seed } = match.metadata as {
+    teamAName: string;
+    teamBName: string;
+    seed?: number;
+  };
   const stats = computePlayerStats(match);
   const hasStats = stats.A.length > 0 || stats.B.length > 0;
   const hasFouls = stats.A.some((s) => s.fouls > 0) || stats.B.some((s) => s.fouls > 0);
@@ -26,6 +30,7 @@ export function MatchSummaryScreen({ match, onBack }: Props) {
         {teamAName} {match.scoreA} - {match.scoreB} {teamBName}
       </Text>
       <Text style={styles.stat}>Result: {WINNER_LABEL[match.winner]}</Text>
+      <Text style={styles.stat}>Seed: {seed === undefined ? '—' : seed}</Text>
       <Text style={styles.stat}>Total events: {match.events.length}</Text>
 
       <View style={styles.section}>

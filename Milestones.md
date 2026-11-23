@@ -200,6 +200,10 @@ from the event log) plus **period / set breakdowns**, covering all nine sports:
   and Accelerated modes) that shows the same stats panel mid-match. The rendering was extracted into a
   shared `src/components/MatchStatsView.tsx` (`StatTable` + `MatchStatsSections` + `MatchStatsView`)
   so the Summary screen and the live toggle use one implementation.
+- **Random seed by default**: `MatchOptionsScreen`'s seed field is now optional — blank means a fresh
+  random 32-bit seed is generated at match start (in `App.start`), so every "new game" differs. A typed
+  non-negative integer is still honoured for reproducible results. The seed actually used is recorded
+  in `match.metadata.seed` and shown in both Live and Summary screens.
 
 **Bug fixed (latent, surfaced by this feature):** `BasketballEngine.recordQuarter` subtracted the
 previous *delta* instead of the running cumulative, so per-quarter scores were wrong from Q3 onward.
@@ -215,3 +219,5 @@ half breakdown is correct.
 - `computeMatchStats` runs without error for all nine sports.
 - Live **Stats** toggle renders the same panel (per-team tallies + period/set breakdowns) during a
   match in both Instant and Accelerated modes.
+- Leaving the seed blank yields a different match each game; entering a seed reproduces the same match
+  (the used seed is displayed in Live + Summary for reproducibility).
