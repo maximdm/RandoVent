@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, Share, Clipboard } from 'react-native';
 import { ScrollScreen, Card, Button, SectionTitle } from '../components/ui';
 import { useTheme } from '../theme';
 import { SPORT_LABEL } from '../engine';
@@ -63,6 +63,31 @@ export function HistoryScreen({ onBack, onReplay }: Props) {
     ]);
   };
 
+  const historyToText = (): string => {
+    if (records.length === 0) return 'No matches recorded yet.';
+    const lines = records.map((r) => {
+      const a = r.config.participants?.teamAName ?? 'Team A';
+      const b = r.config.participants?.teamBName ?? 'Team B';
+      return `${SPORT_LABEL[r.sport] ?? r.sport}: ${a} ${r.scoreA} – ${r.scoreB} ${b} (${winnerLabel(r.winner, r)})`;
+    });
+    return ['RandoVent — Match History', '='.repeat(28), ...lines].join('\n');
+  };
+
+  const exportHistory = (): void => {
+    if (records.length === 0) return;
+    Clipboard.setString(historyToText());
+    Alert.alert('Copied', `History (${records.length} match record(s)) copied to clipboard.`);
+  };
+
+  const shareHistory = async (): Promise<void> => {
+    if (records.length === 0) return;
+    try {
+      await Share.share({ message: historyToText(), title: 'RandoVent Match History' });
+    } catch {
+      // Share sheet dismissed or unavailable — nothing to do.
+    }
+  };
+
   return (
     <ScrollScreen>
       <SectionTitle>
@@ -107,10 +132,20 @@ export function HistoryScreen({ onBack, onReplay }: Props) {
       ))}
 
       {records.length > 0 && (
-        <Button title="Clear all" onPress={clearAll} variant="ghost" block />
+        <View style={{ gap: 10 }}>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Button title="Export 📋" onPress={exportHistory} variant="secondary" accessibilityLabel="Copy history to clipboard" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button title="Share ↗" onPress={shareHistory} variant="secondary" accessibilityLabel="Share history" />
+            </View>
+          </View>
+          <Button title="Clear all" onPress={clearAll} variant="ghost" block accessibilityLabel="Clear all match history" />
+        </View>
       )}
 
-      <Button title="Back" onPress={onBack} variant="ghost" block />
+      <Button title="Back" onPress={onBack} variant="ghost" block accessibilityLabel="Back to home screen" />
     </ScrollScreen>
   );
 }

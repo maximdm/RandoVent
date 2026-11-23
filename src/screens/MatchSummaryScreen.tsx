@@ -1,5 +1,6 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Share, Clipboard, Alert } from 'react-native';
 import { SimResult, computePlayerStats, topBy, PlayerStat } from '../engine';
+import { SPORT_LABEL } from '../engine';
 import { MatchStatsSections } from '../components/MatchStatsView';
 import { ScrollScreen, Card, Button, SectionTitle } from '../components/ui';
 import { useTheme } from '../theme';
@@ -22,7 +23,9 @@ function PlayerTable({ team, rows }: { team: string; rows: PlayerStat[] }) {
   if (rows.length === 0) return null;
   return (
     <View style={styles.teamBlock}>
-      <Text style={[styles.teamName, { color: theme.text }]}>{team}</Text>
+      <Text style={[styles.teamName, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">
+        {team}
+      </Text>
       {rows.map((r) => (
         <Text key={r.name} style={[styles.playerRow, { color: theme.textDim }]}>
           {boxLine(r)}
@@ -57,13 +60,42 @@ export function MatchSummaryScreen({ match, onBack, onReplay, onAllSports }: Pro
   const hasStats = stats.A.length > 0 || stats.B.length > 0;
   const hasFouls = stats.A.some((s) => s.fouls > 0) || stats.B.some((s) => s.fouls > 0);
 
+  const matchToText = (): string => {
+    const sport = SPORT_LABEL[match.sport as keyof typeof SPORT_LABEL] ?? match.sport;
+    const result = WINNER_LABEL[match.winner];
+    return [
+      'RandoVent — Match Result',
+      `${sport}`,
+      `${teamAName} ${match.scoreA} – ${match.scoreB} ${teamBName}`,
+      result,
+      `Seed: ${seed === undefined ? '—' : seed} · ${match.events.length} events`,
+    ].join('\n');
+  };
+
+  const copyResult = (): void => {
+    Clipboard.setString(matchToText());
+    Alert.alert('Copied', 'Match result copied to clipboard.');
+  };
+
+  const shareResult = async (): Promise<void> => {
+    try {
+      await Share.share({ message: matchToText(), title: `${teamAName} vs ${teamBName}` });
+    } catch {
+      // Share sheet dismissed or unavailable — nothing to do.
+    }
+  };
+
   return (
     <ScrollScreen>
       <Card style={styles.hero}>
         <View style={styles.teamNames}>
-          <Text style={[styles.teamName, { color: theme.teamA }]}>{teamAName}</Text>
+          <Text style={[styles.teamName, { color: theme.teamA }]} numberOfLines={1} ellipsizeMode="tail">
+            {teamAName}
+          </Text>
           <Text style={[styles.teamName, { color: theme.subtext }]}>vs</Text>
-          <Text style={[styles.teamName, { color: theme.teamB }]}>{teamBName}</Text>
+          <Text style={[styles.teamName, { color: theme.teamB }]} numberOfLines={1} ellipsizeMode="tail">
+            {teamBName}
+          </Text>
         </View>
         <View style={styles.scoreRow}>
           <Text style={[styles.bigScore, { color: theme.teamA }]}>{match.scoreA}</Text>
@@ -97,13 +129,21 @@ export function MatchSummaryScreen({ match, onBack, onReplay, onAllSports }: Pro
       )}
 
       <View style={{ gap: 10 }}>
-        <Button title="Same Sport ↻" onPress={onReplay} block />
+        <Button title="Same Sport ↻" onPress={onReplay} block accessibilityLabel="Replay same sport with a new random seed" />
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <View style={{ flex: 1 }}>
-            <Button title="All Sports" onPress={onAllSports} variant="secondary" />
+            <Button title="Share ↗" onPress={shareResult} variant="secondary" accessibilityLabel="Share match result" />
           </View>
           <View style={{ flex: 1 }}>
-            <Button title="Home" onPress={onBack} variant="secondary" />
+            <Button title="Copy 📋" onPress={copyResult} variant="secondary" accessibilityLabel="Copy match result to clipboard" />
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <Button title="All Sports" onPress={onAllSports} variant="secondary" accessibilityLabel="Back to sport picker" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button title="Home" onPress={onBack} variant="secondary" accessibilityLabel="Back to home screen" />
           </View>
         </View>
       </View>

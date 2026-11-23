@@ -25,8 +25,8 @@ describe('Realism calibration (widened bands)', () => {
     });
     const m = mean(perTeam);
     // agents.md target λ ≈ 1.1–1.6; allow a little slack.
-    expect(m).toBeGreaterThan(0.9);
-    expect(m).toBeLessThan(2.0);
+    expect(m).toBeGreaterThan(1.0);
+    expect(m).toBeLessThan(1.7);
 
     const blowouts = perTeam.filter((g) => g > 6).length;
     expect(blowouts / perTeam.length).toBeLessThan(0.02); // < 2%
@@ -38,9 +38,9 @@ describe('Realism calibration (widened bands)', () => {
       return [r.scoreA, r.scoreB];
     });
     const m = mean(perTeam);
-    // agents.md realistic totals ~85–125; widen slightly.
-    expect(m).toBeGreaterThan(82);
-    expect(m).toBeLessThan(135);
+    // agents.md realistic totals ~85–125/team; tightened to a credible band.
+    expect(m).toBeGreaterThan(102);
+    expect(m).toBeLessThan(118);
   });
 
   it('Basketball: enriched hustle events are present', () => {
@@ -57,9 +57,9 @@ describe('Realism calibration (widened bands)', () => {
       return r.scoreA + r.scoreB;
     });
     const m = mean(totals);
-    // agents.md λ ≈ 2.6–3.2/team → total ~5; widen.
-    expect(m).toBeGreaterThan(3.0);
-    expect(m).toBeLessThan(9.5);
+    // agents.md λ ≈ 2.6–3.2/team → total ~5; tightened band.
+    expect(m).toBeGreaterThan(4.0);
+    expect(m).toBeLessThan(9.0);
     const blowouts = totals.filter((t) => t > 14).length;
     expect(blowouts / totals.length).toBeLessThan(0.02);
   });
@@ -71,15 +71,15 @@ describe('Realism calibration (widened bands)', () => {
     expect(kinds.has('FACEOFF_WIN')).toBe(true);
   });
 
-  it('Handball: average goals/team within a realistic (widened) band', () => {
+  it('Handball: average goals/team within a realistic band', () => {
     const perTeam = seeds.flatMap((s) => {
       const r = simulate(SportKey.HANDBALL, s);
       return [r.scoreA, r.scoreB];
     });
     const m = mean(perTeam);
-    // Elite handball averages ~26–27 goals/team; allow slack.
-    expect(m).toBeGreaterThan(20);
-    expect(m).toBeLessThan(35);
+    // Elite handball averages ~26–27 goals/team; tightened band.
+    expect(m).toBeGreaterThan(22);
+    expect(m).toBeLessThan(32);
   });
 
   it('Handball: enriched shot/save/7m events are present', () => {
@@ -97,9 +97,10 @@ describe('Realism calibration (widened bands)', () => {
       return r.scoreA + r.scoreB;
     });
     const m = mean(totals);
-    // agents.md typical 12–35; widen a touch (model runs a little hot here).
-    expect(m).toBeGreaterThan(14);
-    expect(m).toBeLessThan(62);
+    // agents.md typical final scores imply a total in the high-40s to mid-50s; we
+    // keep a credible band that also tolerates the occasional high-scoring blowout.
+    expect(m).toBeGreaterThan(42);
+    expect(m).toBeLessThan(60);
   });
 
   it('Rugby: enriched contact events are present', () => {

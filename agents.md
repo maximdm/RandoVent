@@ -136,7 +136,7 @@ CRITICAL: Never use uniform random ranges (e.g., `Math.floor(Math.random() * 30)
   - CONVERSION = 2 points (kick after a try)
   - PENALTY_GOAL = 3 points
   - DROP_GOAL = 3 points
-- **Score Realism:** Typical final scores 12-9, 15-12, 24-20, 30-15, 35-21. Most points come from tries plus conversions; penalty goals are frequent but lower-value.
+- **Score Realism:** Typical final scores 12-9, 15-12, 24-20, 30-15, 35-21. Most points come from tries plus conversions; penalty goals are frequent but lower-value. **Calibrated totals** average in the high-40s to mid-50s per match (two teams combined), with blowouts to ~70 rare. The engine caps tries at 8, penalties at 6, and drop goals at 2 per team to keep Poisson tails realistic.
 - **Roster (per team):** 15 starters (PlayerTeamANo1–No15) + 8 substitutes (No16–No23).
 - **Sport-Specific Events:** TRY (5pts), CONVERSION (2pts, after try), PENALTY_GOAL (3pts), DROP_GOAL (3pts), KNOCK_ON, TACKLE, SCRUM, LINEOUT, YELLOW_CARD (10-min sin bin), RED_CARD (sending off)
 - **Note:** Rugby League (13-a-side, 6-tackle rule, 80 mins) may be selected as an alternative code; keep the try/conversion/penalty/drop-goal point values identical.

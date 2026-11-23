@@ -43,21 +43,25 @@ export class RugbyEngine implements SportEngine {
         pts += p;
         events.push({ id: id(), minute, half, kind, team, detail: `${teamName} +${p}${player ? ` — ${player}` : ''}`, player });
       };
-      const tries = poisson(triesLambda, rng);
+      // Caps keep extreme Poisson tails realistic: a team scoring 8+ tries or 6+
+      // penalties in a single match is essentially unheard of, so we bound them.
+      const tries = Math.min(poisson(triesLambda, rng), 7);
       for (let i = 0; i < tries; i++) {
         const scorer = pick(roster, rng);
         add('TRY', tryPts, scorer);
         if (bernoulli(0.78, rng)) add('CONVERSION', convPts);
       }
-      const pens = poisson(pensLambda, rng);
+      const pens = Math.min(poisson(pensLambda, rng), 5);
       for (let i = 0; i < pens; i++) add('PENALTY_GOAL', penPts);
-      const drops = poisson(dropsLambda, rng);
+      const drops = Math.min(poisson(dropsLambda, rng), 2);
       for (let i = 0; i < drops; i++) add('DROP_GOAL', dropPts);
       return pts;
     };
 
-    ptsA = scoreTeam('A', teamAName, rosterA, code === 'UNION' ? 3.2 : 4.0, 2.0, 0.4);
-    ptsB = scoreTeam('B', teamBName, rosterB, code === 'UNION' ? 3.0 : 3.8, 1.8, 0.4);
+    // Union: ~2.7–2.9 tries + ~1.8–1.9 penalties + occasional drop goals per team →
+    // a realistic total in the high-40s to mid-50s. League is try-heavy, penalty-light.
+    ptsA = scoreTeam('A', teamAName, rosterA, code === 'UNION' ? 2.9 : 3.6, code === 'UNION' ? 1.9 : 1.6, code === 'UNION' ? 0.35 : 0.3);
+    ptsB = scoreTeam('B', teamBName, rosterB, code === 'UNION' ? 2.7 : 3.4, code === 'UNION' ? 1.8 : 1.5, code === 'UNION' ? 0.35 : 0.3);
 
     // Set-piece and contact flavour (no score impact).
     const emitRugbyFlavor = (team: 'A' | 'B', teamName: string, roster: string[]) => {

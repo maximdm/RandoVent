@@ -238,8 +238,8 @@ export class BasketballEngine implements SportEngine {
       const otLen = 5;
       const minStart = otStart + 1;
       const minEnd = otStart + otLen;
-      distributeFG(Math.max(0, Math.round(normal(6 * (otLen / 12), 2 * (otLen / 12), rng))), minStart, minEnd, 'A', rosterA);
-      distributeFG(Math.max(0, Math.round(normal(6 * (otLen / 12), 2 * (otLen / 12), rng))), minStart, minEnd, 'B', rosterB);
+      distributeFG(Math.max(0, Math.round(normal(6 * (otLen / 12) * scale, 2 * (otLen / 12) * scale, rng))), minStart, minEnd, 'A', rosterA);
+      distributeFG(Math.max(0, Math.round(normal(6 * (otLen / 12) * scale, 2 * (otLen / 12) * scale, rng))), minStart, minEnd, 'B', rosterB);
       simulateFouls('A', 'B', rosterA, rosterB, minStart, minEnd);
       simulateFouls('B', 'A', rosterB, rosterA, minStart, minEnd);
       emitHustle('A', 'B', rosterA, rosterB, minStart, minEnd);

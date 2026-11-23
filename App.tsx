@@ -15,6 +15,7 @@ import {
   MatchRecord,
 } from './src/storage/matchHistory';
 import { ThemeProvider, useTheme, useThemeControls } from './src/theme';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 function simulate(config: MatchConfig): SimResult {
   return getEngine(config.sport).simulate(config);
@@ -26,7 +27,9 @@ type MatchView = 'live' | 'summary';
 export default function App() {
   return (
     <ThemeProvider>
-      <AppRoot />
+      <ErrorBoundary>
+        <AppRoot />
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

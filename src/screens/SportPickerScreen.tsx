@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { SportKey } from '../engine';
 import { ScrollScreen, Card, Button } from '../components/ui';
 import { useTheme } from '../theme';
@@ -21,20 +21,46 @@ const SPORTS: Array<{ key: SportKey; label: string; tag: string; emoji: string }
   { key: SportKey.E_SPORT, label: 'E-Sport', tag: 'Best of maps', emoji: '🕹️' },
 ];
 
+// Choose a column count from the available width so the grid stays compact on
+// phones (2-up), comfortable on small tablets, and airy on large screens — while
+// a max-width container keeps cards from stretching absurdly wide on desktop/web.
+function columnsForWidth(width: number): number {
+  if (width >= 1024) return 5;
+  if (width >= 768) return 4;
+  if (width >= 520) return 3;
+  return 2;
+}
+
 export function SportPickerScreen({ onPick, onBack }: Props) {
   const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const cols = columnsForWidth(width);
+  const cellWidth = `${(100 / cols) - 2}%`; // 2% total reserved for the row gap
+
   return (
     <ScrollScreen>
-      <View style={styles.grid}>
-        {SPORTS.map((s) => (
-          <Card key={s.key} style={styles.cell}>
-            <Text style={styles.emoji}>{s.emoji}</Text>
-            <Text style={[styles.label, { color: theme.text }]}>{s.label}</Text>
-            <Text style={[styles.tag, { color: theme.subtext }]}>{s.tag}</Text>
-            <View style={styles.spacer} />
-            <Button title="Select" onPress={() => onPick(s.key)} block />
-          </Card>
-        ))}
+      <View style={styles.gridWrap}>
+        <View style={[styles.grid, { gap: 12 }]}>
+          {SPORTS.map((s) => (
+            <Card key={s.key} style={[styles.cell, { width: cellWidth }]}>
+              <Text style={styles.emoji}>{s.emoji}</Text>
+              <Text style={[styles.label, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">
+                {s.label}
+              </Text>
+              <Text style={[styles.tag, { color: theme.subtext }]} numberOfLines={1} ellipsizeMode="tail">
+                {s.tag}
+              </Text>
+              <View style={styles.spacer} />
+              <Button
+                title="Select"
+                onPress={() => onPick(s.key)}
+                block
+                accessibilityLabel={`Select ${s.label}`}
+                accessibilityHint={s.tag}
+              />
+            </Card>
+          ))}
+        </View>
       </View>
       <View style={{ marginTop: 16 }}>
         <Button title="Back" onPress={onBack} variant="ghost" block />
@@ -44,13 +70,17 @@ export function SportPickerScreen({ onPick, onBack }: Props) {
 }
 
 const styles = StyleSheet.create({
+  gridWrap: {
+    width: '100%',
+    maxWidth: 980,
+    alignSelf: 'center',
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   cell: {
-    width: '48.5%',
     marginBottom: 12,
   },
   emoji: { fontSize: 30 },

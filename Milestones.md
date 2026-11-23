@@ -450,3 +450,63 @@ on-device match history, lottery extras, an Android hardware back button + consi
 - Enriched events (`SAVE`, `SHOT_ON_GOAL`, `PENALTY_7M`, `FAST_BREAK`, `TURNOVER`, `SUSPENSION`)
   appear in the log; period breakdown shows both halves.
 - Same storage caveat as M12–M15.
+
+## M17 — Realism re-calibration, robustness & production hardening
+**Status:** ✅ Done (engine tuning + UI hardening; items 3–7 from the planning review, except the
+device/i18n/store work that needs a native toolchain — see "Not done" below).
+
+### 3. Tighten realism / calibrate properly
+- **Rugby (Union)** was the worst offender: Poisson tries with no caps produced a 5–121 total spread.
+  Retuned in `RugbyEngine.ts`: lower try/penalty rates (≈2.7–2.9 tries, ≈1.8–1.9 pens per team) and
+  **hard caps** — tries ≤ 7, penalties ≤ 5, drop goals ≤ 2 per team — so totals cluster in the
+  high-40s to mid-50s (measured mean **51.2**) with rare blowouts. `agents.md` §4 updated to match.
+- **Calibration bands** (`Calibration.test.ts`) tightened to credible ranges backed by measured means
+  over the fixed 400-seed set (deterministic, so the bands are safe, not brittle):
+  - Football goals/team **1.0–1.7** (was 0.9–2.0)
+  - Basketball points/team **102–118** (was 82–135)
+  - Hockey total **4.0–9.0** (was 3.0–9.5)
+  - Handball goals/team **22–32** (was 20–35)
+  - Rugby Union total **42–60** (was 14–62 — a 48-pt spread → 18-pt spread)
+- **Basketball overtime** bug fixed: OT scoring now scales with `quarterLength` (was unscaled), so a
+  10-min game no longer gets the same absolute OT bump as a 12-min game (realism + keeps the existing
+  "shorter quarters → fewer points" invariant true).
+
+### 4. Platform + layout robustness
+- `SportPickerScreen` grid is now **responsive**: column count derived from viewport width
+  (2 / 3 / 4 / 5 cols) via `useWindowDimensions`, wrapped in a centered `maxWidth: 980` container so
+  cards don't stretch absurdly on tablets/desktop. Re-layouts on rotation/resize.
+- Long team names are guarded against overflow in `MatchSummaryScreen` (hero + box-score headers use
+  `numberOfLines` + `ellipsizeMode: 'tail'`).
+
+### 5. Production hardening
+- **React error boundary** (`src/components/ErrorBoundary.tsx`) wraps `<AppRoot/>` inside the theme
+  provider. One uncaught render throw now shows a recoverable "Something went wrong / Try again"
+  screen instead of white-screening the whole app; errors are still logged via `componentDidCatch`.
+
+### 6. Accessibility
+- `Button` now forwards `accessibilityLabel` / `accessibilityHint` and sets `accessibilityRole:
+  "button"`; sport cards, summary actions, and history actions carry descriptive labels.
+  `SectionTitle` exposes `accessibilityRole: "header"`. Dynamic type is respected (no
+  `allowFontScaling={false}` anywhere).
+
+### 7. Nice-to-haves
+- **Share / Copy match results**: `MatchSummaryScreen` gained "Share ↗" (`Share.share`) and "Copy 📋"
+  (`Clipboard`) buttons that export the final score, winner, sport and seed as plain text.
+- **Export history**: `HistoryScreen` gained "Export 📋" (copy) and "Share ↗" for the full match
+  list. (Bulk clear-with-confirmation already existed.)
+- "More sports" (cricket/baseball/etc.) deferred — the engine pattern makes each a ~1-file + tests
+  addition and can be slotted in later.
+
+### Not done (needs a native toolchain or larger scope — flagged, not half-built)
+- **iOS build check** — nothing in code blocks iOS, but a real `expo run:ios` / device build was not
+  run here (no macOS/SDK). Verify on a Mac before release.
+- **React Navigation migration** — the hand-rolled `useState` stack + `BackHandler` works; migration
+  is optional polish, deferred.
+- **App icons / splash / signing / store metadata** — no store-readiness scaffolding yet.
+- **i18n** — English-only; localization deferred.
+
+**Acceptance**
+- `tsc --noEmit` clean; **all 144 tests pass** (calibration + edge cases green).
+- Rugby calibration band now 42–60 with measured mean 51.2; other bands tightened to credible ranges.
+- Sport picker adapts 2→5 columns by width; summary/history share+export wired; error boundary wraps
+  the app.

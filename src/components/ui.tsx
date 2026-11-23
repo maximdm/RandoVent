@@ -80,7 +80,11 @@ export function SectionTitle({
 }) {
   const theme = useTheme();
   const styles = makeStyles(theme);
-  return <Text style={[styles.sectionTitle, style]}>{children}</Text>;
+  return (
+    <Text style={[styles.sectionTitle, style]} accessibilityRole="header">
+      {children}
+    </Text>
+  );
 }
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -91,12 +95,16 @@ export function Button({
   variant = 'primary',
   disabled = false,
   block = false,
+  accessibilityLabel,
+  accessibilityHint,
 }: {
   title: string;
   onPress: () => void;
   variant?: ButtonVariant;
   disabled?: boolean;
   block?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }) {
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -119,6 +127,9 @@ export function Button({
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityHint={accessibilityHint}
       style={({ pressed }) => [base, pressed && !disabled && styles.btnPressed]}
     >
       <Text style={textStyle}>{title}</Text>
