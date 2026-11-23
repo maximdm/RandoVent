@@ -19,14 +19,14 @@ export function StatTable({
     <View style={[styles.table, { borderColor: theme.tableBorder }]}>
       <View style={[styles.tableHead, { backgroundColor: theme.tableHeadBg }]}>
         <Text style={[styles.cell, styles.cellLabel, { color: theme.textDim }]}> </Text>
-        <Text style={[styles.cell, styles.cellTeam]}>{teamAName}</Text>
-        <Text style={[styles.cell, styles.cellTeam]}>{teamBName}</Text>
+        <Text style={[styles.cell, styles.cellTeam, { color: theme.text }]}>{teamAName}</Text>
+        <Text style={[styles.cell, styles.cellTeam, { color: theme.text }]}>{teamBName}</Text>
       </View>
       {rows.map((r, i) => (
         <View key={i} style={[styles.tableRow, { borderColor: theme.tableRowBorder }]}>
           <Text style={[styles.cell, styles.cellLabel, { color: theme.textDim }]}>{r.label}</Text>
-          <Text style={[styles.cell, styles.cellNum]}>{r.a}</Text>
-          <Text style={[styles.cell, styles.cellNum]}>{r.b}</Text>
+          <Text style={[styles.cell, styles.cellNum, { color: theme.text }]}>{r.a}</Text>
+          <Text style={[styles.cell, styles.cellNum, { color: theme.text }]}>{r.b}</Text>
         </View>
       ))}
     </View>

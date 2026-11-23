@@ -22,7 +22,7 @@ function PlayerTable({ team, rows }: { team: string; rows: PlayerStat[] }) {
   if (rows.length === 0) return null;
   return (
     <View style={styles.teamBlock}>
-      <Text style={styles.teamName}>{team}</Text>
+      <Text style={[styles.teamName, { color: theme.text }]}>{team}</Text>
       {rows.map((r) => (
         <Text key={r.name} style={[styles.playerRow, { color: theme.textDim }]}>
           {r.name}: {r.points} pts{hasFoulsRow(r) ? `, ${r.fouls} fouls` : ''}
@@ -52,7 +52,7 @@ export function MatchSummaryScreen({ match, onBack, onReplay, onAllSports }: Pro
       <Card style={styles.hero}>
         <View style={styles.teamNames}>
           <Text style={[styles.teamName, { color: theme.teamA }]}>{teamAName}</Text>
-          <Text style={styles.teamName}>vs</Text>
+          <Text style={[styles.teamName, { color: theme.subtext }]}>vs</Text>
           <Text style={[styles.teamName, { color: theme.teamB }]}>{teamBName}</Text>
         </View>
         <View style={styles.scoreRow}>
