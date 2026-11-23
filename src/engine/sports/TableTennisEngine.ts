@@ -1,5 +1,5 @@
 import { MatchConfig, SportKey } from '../core/MatchConfig';
-import { SimEvent, SimResult } from '../core/EventTypes';
+import { SimEvent, SimResult, SportEventKind } from '../core/EventTypes';
 import { SportEngine } from '../core/SportEngine';
 import { Rng, createRng, normal, bernoulli, clamp } from '../core/Distributions';
 import { createIdFactory } from '../core/id';
@@ -40,8 +40,26 @@ export class TableTennisEngine implements SportEngine {
       }
       gameScores.push([a, b]);
       const w: 'A' | 'B' = a > b ? 'A' : 'B';
+      const winnerName = w === 'A' ? playerA : playerB;
+      const loserName = w === 'A' ? playerB : playerA;
       if (w === 'A') gamesA++;
       else gamesB++;
+      // Point-level flavour for the deciding game: winners, unforced errors,
+      // net cords, edge balls and the occasional long rally.
+      for (let i = 0; i < 4; i++) {
+        const r = rng();
+        if (r < 0.4) {
+          events.push({ id: id(), minute: gameNum, half: 1, kind: 'WINNER' as SportEventKind, team: w, detail: `Winner — ${winnerName}` });
+        } else if (r < 0.65) {
+          events.push({ id: id(), minute: gameNum, half: 1, kind: 'UNFORCED_ERROR' as SportEventKind, team: w === 'A' ? 'B' : 'A', detail: `Unforced error — ${loserName}` });
+        } else if (r < 0.8) {
+          events.push({ id: id(), minute: gameNum, half: 1, kind: 'NET_CORD' as SportEventKind, team: bernoulli(0.5, rng) ? 'A' : 'B', detail: `Net cord — ${bernoulli(0.5, rng) ? playerA : playerB}` });
+        } else if (r < 0.92) {
+          events.push({ id: id(), minute: gameNum, half: 1, kind: 'EDGE_BALL' as SportEventKind, team: bernoulli(0.5, rng) ? 'A' : 'B', detail: `Edge ball — ${bernoulli(0.5, rng) ? playerA : playerB}` });
+        } else {
+          events.push({ id: id(), minute: gameNum, half: 1, kind: 'LONG_RALLY' as SportEventKind, team: null, detail: `Long rally (${a}-${b})` });
+        }
+      }
       events.push({ id: id(), minute: gameNum, half: 1, kind: 'GAME_WIN', team: w, detail: `Game ${gameNum}: ${playerA} ${a}-${b} ${playerB}` });
       gameNum++;
     }

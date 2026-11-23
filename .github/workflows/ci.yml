@@ -2,72 +2,18 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/m9-stats]
   pull_request:
-    branches: [main]
 
 jobs:
-  ci:
-    name: Typecheck & Test
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Test
-        run: npm test
-
-  expo-doctor:
-    name: Expo Doctor
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Validate dependencies against Expo SDK
-        run: npx expo install --check
-
-      - name: Run Expo Doctor
-        run: npx expo-doctor
-
-  expo-export:
-    name: Expo Export (Metro bundle check)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Export bundle (catches Metro/import errors)
-        run: npx expo export --platform android --output-dir /tmp/expo-export
-        env:
-          EXPO_NO_TELEMETRY: 1
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test

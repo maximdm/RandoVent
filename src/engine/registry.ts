@@ -10,6 +10,19 @@ import { RugbyEngine } from './sports/RugbyEngine';
 import { ESoccerEngine } from './sports/ESoccerEngine';
 import { ESportEngine } from './sports/ESportEngine';
 
+// Human-readable labels for each sport, shared by the options and history UI.
+export const SPORT_LABEL: Record<SportKey, string> = {
+  [SportKey.FOOTBALL]: 'Football',
+  [SportKey.TENNIS]: 'Tennis',
+  [SportKey.BASKETBALL]: 'Basketball',
+  [SportKey.HOCKEY]: 'Ice Hockey',
+  [SportKey.VOLLEYBALL]: 'Volleyball',
+  [SportKey.TABLE_TENNIS]: 'Table Tennis',
+  [SportKey.RUGBY]: 'Rugby',
+  [SportKey.E_SOCCER]: 'E-Soccer',
+  [SportKey.E_SPORT]: 'E-Sport',
+};
+
 // Returns the engine implementation for a given sport. All nine sports defined in
 // SportKey now have an engine (M3 complete). Football, Tennis, Basketball, Hockey,
 // Volleyball, Table Tennis, Rugby, E-Soccer and E-Sport are all implemented.

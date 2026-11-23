@@ -68,3 +68,69 @@ export function generateLottery(config: LotteryConfig): string | string[] {
 
   return sets === 1 ? results[0] : results;
 }
+
+// Splits a hyphen-joined number string ("03-12-27") into integers.
+// Tolerates stray spaces and non-numeric tokens (which are ignored).
+export function parseNumbers(s: string): number[] {
+  return s
+    .split('-')
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0 && /^\d+$/.test(t))
+    .map((t) => parseInt(t, 10));
+}
+
+// Draws a single "winning" combination under the same conditions as a ticket.
+// Uses an explicit (or fresh random) seed so it's reproducible if desired.
+export function drawWinning(config: LotteryConfig, seed?: number): string {
+  const { count, min, max, allowDuplicates = false, sorted = true } = config;
+  if (!Number.isInteger(count) || count < 1) throw new LotteryError('count must be an integer >= 1');
+  if (min > max) throw new LotteryError('min must be <= max');
+  const range = max - min + 1;
+  if (!allowDuplicates && count > range) {
+    throw new LotteryError(`count (${count}) exceeds the unique range size (${range})`);
+  }
+  const normalized: Required<Omit<LotteryConfig, 'seed'>> = {
+    count,
+    min,
+    max,
+    allowDuplicates,
+    sorted,
+    sets: 1,
+  };
+  return drawSet(createRng(seed ?? randomSeed()), normalized);
+}
+
+// Counts how many entries of `mine` also appear in `winning`, counting each value
+// as many times as it occurs in both (so duplicates are matched as a multiset).
+export function countMatches(mine: string, winning: string): number {
+  const a = parseNumbers(mine);
+  const b = parseNumbers(winning);
+  const counts = new Map<number, number>();
+  for (const n of b) counts.set(n, (counts.get(n) ?? 0) + 1);
+  let matched = 0;
+  for (const n of a) {
+    const c = counts.get(n) ?? 0;
+    if (c > 0) {
+      matched += 1;
+      counts.set(n, c - 1);
+    }
+  }
+  return matched;
+}
+
+export interface CheckResult {
+  matches: number;
+  total: number;
+  winning: string;
+}
+
+// Convenience: draws a winning combination for the supplied config and reports
+// how many of the player's numbers matched it.
+export function checkMyNumbers(numbers: string, config: LotteryConfig, seed?: number): CheckResult {
+  const winning = drawWinning(config, seed);
+  return {
+    matches: countMatches(numbers, winning),
+    total: parseNumbers(numbers).length,
+    winning,
+  };
+}

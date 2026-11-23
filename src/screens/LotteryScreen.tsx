@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
-import { generateLottery, LotteryError, randomSeed } from '../engine';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Clipboard, Share } from 'react-native';
+import { generateLottery, LotteryError, randomSeed, checkMyNumbers } from '../engine';
 import {
   slipRepo,
   createSlip,
@@ -34,6 +34,26 @@ interface Props {
 
 const NEW = '__new__';
 
+interface Preset {
+  label: string;
+  count: string;
+  min: string;
+  max: string;
+  allowDuplicates: boolean;
+  sorted: boolean;
+}
+
+// Common real-world lottery shapes (single pool). Tapping one fills the generator
+// fields so the user doesn't have to type the range each time.
+const PRESETS: Preset[] = [
+  { label: '6/49', count: '6', min: '1', max: '49', allowDuplicates: false, sorted: true },
+  { label: '5/35', count: '5', min: '1', max: '35', allowDuplicates: false, sorted: true },
+  { label: '5/50', count: '5', min: '1', max: '50', allowDuplicates: false, sorted: true },
+  { label: '7/49', count: '7', min: '1', max: '49', allowDuplicates: false, sorted: true },
+  { label: 'Pick 3', count: '3', min: '0', max: '9', allowDuplicates: true, sorted: false },
+  { label: 'Pick 4', count: '4', min: '0', max: '9', allowDuplicates: true, sorted: false },
+];
+
 function BoolSegment({
   label,
   value,
@@ -61,6 +81,12 @@ function describe(config: SlipSetConfig): string {
   const dup = config.allowDuplicates ? 'repeats allowed' : 'unique';
   const sort = config.sorted ? 'sorted' : 'as drawn';
   return `${config.count} from ${config.min}–${config.max} · ${dup} · ${sort}`;
+}
+
+// Renders a slip as a plain-text block suitable for clipboard / share.
+function slipToText(slip: Slip): string {
+  const lines = slip.sets.map((s, i) => `${s.label || `Set ${i + 1}`}: ${s.numbers}  (${describe(s.config)})`);
+  return `${slip.name}\n${'-'.repeat(slip.name.length)}\n${lines.join('\n')}`;
 }
 
 export function LotteryScreen({ onBack }: Props) {
@@ -222,11 +248,61 @@ export function LotteryScreen({ onBack }: Props) {
     commit(renameSlip(slips, id, name));
   };
 
+  const applyPreset = (p: Preset) => {
+    setCount(p.count);
+    setMin(p.min);
+    setMax(p.max);
+    setAllowDuplicates(p.allowDuplicates);
+    setSorted(p.sorted);
+    setError(null);
+  };
+
+  const copySlip = (slip: Slip) => {
+    const text = slipToText(slip);
+    Clipboard.setString(text);
+    Alert.alert('Copied', `“${slip.name}” copied to clipboard.`);
+  };
+
+  const shareSlip = async (slip: Slip) => {
+    try {
+      await Share.share({ message: slipToText(slip), title: slip.name });
+    } catch {
+      // Share sheet dismissed or unavailable — nothing to do.
+    }
+  };
+
+  const checkSet = (set: SlipSet) => {
+    try {
+      const res = checkMyNumbers(set.numbers, set.config);
+      const verdict =
+        res.matches === res.total
+          ? '🎉 Jackpot! All numbers matched.'
+          : res.matches === 0
+            ? 'No matches this time.'
+            : `${res.matches} of ${res.total} matched.`;
+      Alert.alert(
+        'Check my numbers',
+        `${verdict}\n\nWinning draw:\n${res.winning}`,
+        [{ text: 'OK' }],
+      );
+    } catch (e) {
+      setError(e instanceof LotteryError ? e.message : String(e));
+    }
+  };
+
   return (
     <ScrollScreen>
       <SectionTitle>Lottery Generator</SectionTitle>
 
       <Card style={{ marginBottom: 14 }}>
+        <Field label="Presets">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
+            {PRESETS.map((p) => (
+              <Chip key={p.label} label={p.label} active={false} onPress={() => applyPreset(p)} />
+            ))}
+          </ScrollView>
+        </Field>
+
         <View style={styles.grid2}>
           <View style={styles.cell}>
             <Field label="Count">
@@ -330,6 +406,20 @@ export function LotteryScreen({ onBack }: Props) {
                   {slip.sets.length}/{MAX_SLIP_SETS}
                 </Text>
                 <Pressable
+                  onPress={() => copySlip(slip)}
+                  hitSlop={8}
+                  style={styles.iconBtn}
+                >
+                  <Text style={styles.iconText}>📋</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => void shareSlip(slip)}
+                  hitSlop={8}
+                  style={styles.iconBtn}
+                >
+                  <Text style={styles.iconText}>📤</Text>
+                </Pressable>
+                <Pressable
                   onPress={() => confirmDeleteSlip(slip)}
                   hitSlop={8}
                   style={styles.trash}
@@ -364,6 +454,9 @@ export function LotteryScreen({ onBack }: Props) {
                       <View style={styles.setActions}>
                         <View style={{ flex: 1 }}>
                           <Button title="Reroll ↻" onPress={() => reroll(slip.id, s.id)} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Button title="Check 🎯" onPress={() => checkSet(s)} variant="ghost" />
                         </View>
                         <View style={{ flex: 1 }}>
                           <Button
@@ -425,6 +518,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  slipHeaderActions: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   chips: { flexGrow: 0, marginVertical: 4 },
   chip: {
     paddingVertical: 8,
@@ -454,6 +548,8 @@ const styles = StyleSheet.create({
   },
   trash: { paddingHorizontal: 4 },
   trashText: { fontSize: 16 },
+  iconBtn: { paddingHorizontal: 4 },
+  iconText: { fontSize: 16 },
   slipBody: { marginTop: 10 },
   setRow: {
     marginTop: 10,

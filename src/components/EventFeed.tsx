@@ -22,6 +22,17 @@ const KEY_EVENTS = new Set<SimEvent['kind']>([
   'TIEBREAK',
   'DEUCE',
   'BREAK',
+  // Newly enriched events that deserve a badge.
+  'ACE',
+  'WINNER',
+  'KILL',
+  'CLUTCH',
+  'SERVE_ACE',
+  'CONVERSION',
+  'PENALTY_GOAL',
+  'DROP_GOAL',
+  'BREAK_POINT',
+  'HEADSHOT',
 ]);
 
 const Row = memo(function Row({ item }: { item: SimEvent }) {

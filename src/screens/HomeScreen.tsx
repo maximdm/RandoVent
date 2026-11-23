@@ -5,9 +5,10 @@ import { useTheme, useThemeControls } from '../theme';
 interface Props {
   onMatch: () => void;
   onLottery: () => void;
+  onHistory: () => void;
 }
 
-export function HomeScreen({ onMatch, onLottery }: Props) {
+export function HomeScreen({ onMatch, onLottery, onHistory }: Props) {
   const theme = useTheme();
   const { mode, setMode } = useThemeControls();
   return (
@@ -36,6 +37,17 @@ export function HomeScreen({ onMatch, onLottery }: Props) {
         </Text>
         <View style={{ marginTop: 12 }}>
           <Button title="Open lottery" onPress={onLottery} variant="secondary" block />
+        </View>
+      </Card>
+
+      <Card style={{ marginBottom: 14 }}>
+        <Text style={[titleStyle, { color: theme.text }]}>📜 Match History</Text>
+        <Text style={[bodyStyle, { color: theme.textDim }]}>
+          Every match you simulate is saved here with its seed, so you can replay
+          the exact same result any time.
+        </Text>
+        <View style={{ marginTop: 12 }}>
+          <Button title="View history" onPress={onHistory} variant="secondary" block />
         </View>
       </Card>
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text } from 'react-native';
-import { SportKey, MatchConfig } from '../engine';
+import { SportKey, MatchConfig, SPORT_LABEL } from '../engine';
 import { useTheme } from '../theme';
 import {
   ScrollScreen,
@@ -48,18 +48,6 @@ function OptionSegment<T extends string | number>({
     </Field>
   );
 }
-
-const SPORT_LABEL: Record<SportKey, string> = {
-  [SportKey.FOOTBALL]: 'Football',
-  [SportKey.TENNIS]: 'Tennis',
-  [SportKey.BASKETBALL]: 'Basketball',
-  [SportKey.HOCKEY]: 'Ice Hockey',
-  [SportKey.VOLLEYBALL]: 'Volleyball',
-  [SportKey.TABLE_TENNIS]: 'Table Tennis',
-  [SportKey.RUGBY]: 'Rugby',
-  [SportKey.E_SOCCER]: 'E-Soccer',
-  [SportKey.E_SPORT]: 'E-Sport',
-};
 
 export function MatchOptionsScreen({ sport, onStart, onBack }: Props) {
   const theme = useTheme();

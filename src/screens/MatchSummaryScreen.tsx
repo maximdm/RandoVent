@@ -25,15 +25,24 @@ function PlayerTable({ team, rows }: { team: string; rows: PlayerStat[] }) {
       <Text style={[styles.teamName, { color: theme.text }]}>{team}</Text>
       {rows.map((r) => (
         <Text key={r.name} style={[styles.playerRow, { color: theme.textDim }]}>
-          {r.name}: {r.points} pts{hasFoulsRow(r) ? `, ${r.fouls} fouls` : ''}
+          {boxLine(r)}
         </Text>
       ))}
     </View>
   );
 }
 
-function hasFoulsRow(r: PlayerStat): boolean {
-  return r.fouls > 0;
+// Render a compact box-score line, only showing the categories a player actually
+// accumulated (so sports without rebounds/kills don't show noise).
+function boxLine(r: PlayerStat): string {
+  const parts = [`${r.points} pts`];
+  if (r.fouls > 0) parts.push(`${r.fouls} fouls`);
+  if ((r.rebounds ?? 0) > 0) parts.push(`${r.rebounds} reb`);
+  if ((r.assists ?? 0) > 0) parts.push(`${r.assists} ast`);
+  if ((r.steals ?? 0) > 0) parts.push(`${r.steals} stl`);
+  if ((r.blocks ?? 0) > 0) parts.push(`${r.blocks} blk`);
+  if ((r.kills ?? 0) > 0) parts.push(`${r.kills} kills`);
+  return `${r.name}: ${parts.join(', ')}`;
 }
 
 export function MatchSummaryScreen({ match, onBack, onReplay, onAllSports }: Props) {

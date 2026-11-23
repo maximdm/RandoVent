@@ -6,6 +6,11 @@ export interface PlayerStat {
   name: string;
   points: number;
   fouls: number;
+  rebounds?: number;
+  assists?: number;
+  steals?: number;
+  blocks?: number;
+  kills?: number;
 }
 
 // Event kinds that count toward a player's discipline/foul tally. A `FOUL_OUT`
@@ -18,6 +23,16 @@ const FOUL_KINDS = new Set<SportEventKind>([
   'PENALTY',
 ]);
 
+// Box-score tallies (besides points/fouls) derived from the event log. Only kinds
+// present here increment a player field; everything else is informational.
+const BOX_VALUE: Partial<Record<SportEventKind, Partial<Record<keyof PlayerStat, number>>>> = {
+  REBOUND: { rebounds: 1 },
+  ASSIST: { assists: 1 },
+  STEAL: { steals: 1 },
+  BLOCK: { blocks: 1 },
+  KILL: { kills: 1 },
+};
+
 // Derives per-team player leaderboards directly from the event log, so no engine
 // needs to pre-aggregate. Works for any sport whose events carry `player` + `team`
 // (football, basketball, hockey, rugby, volleyball). Individual sports (tennis,
@@ -28,19 +43,30 @@ export function computePlayerStats(sim: SimResult): { A: PlayerStat[]; B: Player
     B: new Map(),
   };
 
+  const bump = (s: PlayerStat, kind: SportEventKind) => {
+    const pv = POINT_VALUE[kind];
+    if (pv) s.points += pv;
+    if (FOUL_KINDS.has(kind)) s.fouls += 1;
+    const bv = BOX_VALUE[kind];
+    if (bv) {
+      for (const k of Object.keys(bv) as (keyof PlayerStat)[]) {
+        (s[k] as number) += bv[k] as number;
+      }
+    }
+  };
+
   for (const e of sim.events) {
     if (!e.player || (e.team !== 'A' && e.team !== 'B')) continue;
     let s = acc[e.team].get(e.player);
     if (!s) {
-      s = { name: e.player, points: 0, fouls: 0 };
+      s = { name: e.player, points: 0, fouls: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0, kills: 0 };
       acc[e.team].set(e.player, s);
     }
-    const pv = POINT_VALUE[e.kind];
-    if (pv) s.points += pv;
-    if (FOUL_KINDS.has(e.kind)) s.fouls += 1;
+    bump(s, e.kind);
   }
 
-  const byScore = (a: PlayerStat, b: PlayerStat) => b.points - a.points || b.fouls - a.fouls;
+  const byScore = (a: PlayerStat, b: PlayerStat) =>
+    b.points - a.points || b.fouls - a.fouls;
   return {
     A: [...acc.A.values()].sort(byScore),
     B: [...acc.B.values()].sort(byScore),
@@ -81,14 +107,61 @@ export const STAT_LABELS: Partial<Record<SportEventKind, string>> = {
   SET_WIN: 'Sets/maps won',
   MAP_WIN: 'Sets/maps won',
   SHOOTOUT: 'Shootout goals',
+  // Tennis / Table Tennis
+  BREAK_POINT: 'Break points',
+  ACE: 'Aces',
+  DOUBLE_FAULT: 'Double faults',
+  WINNER: 'Winners',
+  UNFORCED_ERROR: 'Unforced errors',
+  // Basketball
+  MISS_SHOT: 'Missed shots',
+  REBOUND: 'Rebounds',
+  ASSIST: 'Assists',
+  STEAL: 'Steals',
+  BLOCK: 'Blocks',
+  TURNOVER: 'Turnovers',
+  // Hockey
+  SHOT_ON_GOAL: 'Shots on goal',
+  FACEOFF_WIN: 'Faceoffs won',
+  ICING: 'Icings',
+  // Volleyball
+  KILL: 'Kills',
+  SERVE_ACE: 'Serve aces',
+  SERVE_ERROR: 'Serve errors',
+  ATTACK_ERROR: 'Attack errors',
+  RECEPTION_ERROR: 'Reception errors',
+  DIG: 'Digs',
+  SET_ASSIST: 'Set assists',
+  // Table Tennis
+  NET_CORD: 'Net cords',
+  EDGE_BALL: 'Edge balls',
+  LONG_RALLY: 'Long rallies',
+  // Rugby
+  TACKLE: 'Tackles',
+  SCRUM: 'Scrums',
+  LINEOUT: 'Lineouts',
+  KNOCK_ON: 'Knock-ons',
+  // E-Sport (KILL shares the "Kills" label with volleyball)
+  HEADSHOT: 'Headshots',
+  ROUND_WIN: 'Rounds won',
+  BOMB_PLANT: 'Bomb plants',
+  BOMB_DEFUSE: 'Bomb defuses',
+  OBJECTIVE_CAPTURE: 'Objectives',
+  CLUTCH: 'Clutches',
 };
 
 const ALL_KINDS: SportEventKind[] = [
   'GOAL', 'YELLOW_CARD', 'RED_CARD', 'SUBSTITUTION', 'CORNER', 'OFFSIDE', 'SAVE',
   'FOUL', 'PERIOD_START', 'PERIOD_END', 'MATCH_END', 'SET_WIN', 'TIEBREAK', 'DEUCE',
-  'BREAK', 'GAME', 'POINTS_2', 'POINTS_3', 'FREE_THROW', 'FREE_THROW_MISS',
-  'QUARTER_END', 'PENALTY', 'SHOOTOUT', 'OVERTIME', 'FOUL_OUT', 'BONUS', 'POINT',
-  'GAME_WIN', 'TRY', 'CONVERSION', 'PENALTY_GOAL', 'DROP_GOAL', 'MAP_WIN',
+  'BREAK', 'BREAK_POINT', 'ACE', 'DOUBLE_FAULT', 'WINNER', 'UNFORCED_ERROR', 'GAME',
+  'POINTS_2', 'POINTS_3', 'FREE_THROW', 'FREE_THROW_MISS', 'MISS_SHOT', 'REBOUND',
+  'ASSIST', 'STEAL', 'BLOCK', 'TURNOVER', 'QUARTER_END', 'PENALTY', 'SHOOTOUT',
+  'SHOT_ON_GOAL', 'FACEOFF_WIN', 'ICING', 'OVERTIME', 'FOUL_OUT', 'BONUS', 'POINT',
+  'KILL', 'SERVE_ACE', 'SERVE_ERROR', 'ATTACK_ERROR', 'RECEPTION_ERROR', 'DIG',
+  'SET_ASSIST', 'GAME_WIN', 'NET_CORD', 'EDGE_BALL', 'LONG_RALLY', 'TRY',
+  'CONVERSION', 'PENALTY_GOAL', 'DROP_GOAL', 'TACKLE', 'SCRUM', 'LINEOUT', 'KNOCK_ON',
+  'MAP_WIN', 'HEADSHOT', 'ROUND_WIN', 'BOMB_PLANT', 'BOMB_DEFUSE', 'OBJECTIVE_CAPTURE',
+  'CLUTCH',
 ];
 
 function zeroCounts(): Record<SportEventKind, number> {

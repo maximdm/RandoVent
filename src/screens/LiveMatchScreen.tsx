@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { EventFeed } from '../components/EventFeed';
 import { MatchStatsView } from '../components/MatchStatsView';
 import { SimResult, runningScore } from '../engine';
@@ -12,6 +12,7 @@ interface Props {
   onSummary: () => void;
   onReplay: () => void;
   onAllSports: () => void;
+  onBack: () => void;
 }
 
 type Mode = 'INSTANT' | 'ACCELERATED';
@@ -63,7 +64,7 @@ function AcceleratedView({ match, onSummary }: AcceleratedProps) {
   );
 }
 
-export function LiveMatchScreen({ match, onSummary, onReplay, onAllSports }: Props) {
+export function LiveMatchScreen({ match, onSummary, onReplay, onAllSports, onBack }: Props) {
   const theme = useTheme();
   const [mode, setMode] = useState<Mode>('INSTANT');
   const [liveView, setLiveView] = useState<LiveView>('feed');
@@ -76,6 +77,14 @@ export function LiveMatchScreen({ match, onSummary, onReplay, onAllSports }: Pro
 
   return (
     <Screen>
+      <View style={styles.topBar}>
+        <Pressable onPress={onBack} hitSlop={8} style={styles.backBtn}>
+          <Text style={[styles.backText, { color: theme.subtext }]}>‹ Back</Text>
+        </Pressable>
+        <Text style={[styles.topTitle, { color: theme.text }]}>Live Match</Text>
+        <View style={styles.backBtn} />
+      </View>
+
       <Card style={styles.header}>
         <View style={styles.teamNames}>
           <Text style={[styles.teamName, { color: theme.teamA }]}>{teamAName}</Text>
@@ -136,6 +145,15 @@ export function LiveMatchScreen({ match, onSummary, onReplay, onAllSports }: Pro
 }
 
 const styles = StyleSheet.create({
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  topTitle: { fontSize: 17, fontWeight: '800' },
+  backBtn: { minWidth: 64, paddingVertical: 4 },
+  backText: { fontSize: 15, fontWeight: '700' },
   header: { marginBottom: 12, alignItems: 'center' },
   teamNames: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   teamName: { fontSize: 16, fontWeight: '700', color: '#0f172a' },

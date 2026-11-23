@@ -41,6 +41,7 @@ export class VolleyballEngine implements SportEngine {
       // Simulate rally by rally; cap defensively at target + 10 to guarantee termination.
       while (true) {
         const team: 'A' | 'B' = bernoulli(pA, rng) ? 'A' : 'B';
+        const opp: 'A' | 'B' = team === 'A' ? 'B' : 'A';
         if (team === 'A') a++;
         else b++;
         const scorer = pick(team === 'A' ? rosterA : rosterB, rng);
@@ -53,6 +54,31 @@ export class VolleyballEngine implements SportEngine {
           player: scorer,
           detail: `Point — ${team === 'A' ? teamAName : teamBName} (${scorer}) ${a}-${b}`,
         });
+        // Rally detail: most points are kills; some are serve aces/errors or
+        // attack/reception errors. Plus occasional digs and set assists.
+        const r = rng();
+        const scorerTeamName = team === 'A' ? teamAName : teamBName;
+        if (r < 0.7) {
+          events.push({ id: id(), minute: setNum, half: 1, kind: 'KILL', team, player: scorer, detail: `Kill — ${scorerTeamName} (${scorer})` });
+        } else if (r < 0.82) {
+          events.push({ id: id(), minute: setNum, half: 1, kind: 'SERVE_ACE', team, player: scorer, detail: `Serve ace — ${scorerTeamName} (${scorer})` });
+        } else if (r < 0.9) {
+          events.push({ id: id(), minute: setNum, half: 1, kind: 'SERVE_ERROR', team: opp, player: pick(opp === 'A' ? rosterA : rosterB, rng), detail: `Serve error — ${opp === 'A' ? teamAName : teamBName}` });
+        } else if (r < 0.95) {
+          events.push({ id: id(), minute: setNum, half: 1, kind: 'ATTACK_ERROR', team: opp, player: pick(opp === 'A' ? rosterA : rosterB, rng), detail: `Attack error — ${opp === 'A' ? teamAName : teamBName}` });
+        } else {
+          events.push({ id: id(), minute: setNum, half: 1, kind: 'RECEPTION_ERROR', team: opp, player: pick(opp === 'A' ? rosterA : rosterB, rng), detail: `Reception error — ${opp === 'A' ? teamAName : teamBName}` });
+        }
+        if (bernoulli(0.5, rng)) {
+          const digger = pick(team === 'A' ? rosterA : rosterB, rng);
+          events.push({ id: id(), minute: setNum, half: 1, kind: 'DIG', team, player: digger, detail: `Dig — ${scorerTeamName} (${digger})` });
+        }
+        if (bernoulli(0.4, rng)) {
+          const setter = pick(team === 'A' ? rosterA : rosterB, rng);
+          if (setter !== scorer) {
+            events.push({ id: id(), minute: setNum, half: 1, kind: 'SET_ASSIST', team, player: setter, detail: `Set assist — ${scorerTeamName} (${setter})` });
+          }
+        }
         // Deuce: both teams at set point and tied (24-24 or 14-14) — emit once.
         if (!deuceEmitted && a === target - 1 && b === target - 1) {
           events.push({ id: id(), minute: setNum, half: 1, kind: 'DEUCE', team: null, detail: `Deuce in set ${setNum} (${a}-${b})` });

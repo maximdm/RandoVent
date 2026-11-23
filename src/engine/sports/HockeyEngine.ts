@@ -31,12 +31,15 @@ export class HockeyEngine implements SportEngine {
     let goalsB = 0;
 
     const addGoals = (team: 'A' | 'B', n: number, teamName: string, roster: string[]) => {
+      const oppRoster = team === 'A' ? rosterB : rosterA;
+      const opp = team === 'A' ? 'B' : 'A';
       for (let i = 0; i < n; i++) {
         if (team === 'A') goalsA++;
         else goalsB++;
         const minute = pickInt(1, 60, rng);
         const period = Math.min(3, Math.ceil(minute / 20));
         const scorer = pick(roster, rng);
+        const assistant = pick(roster, rng);
         events.push({
           id: id(),
           minute,
@@ -46,11 +49,70 @@ export class HockeyEngine implements SportEngine {
           detail: `${teamName} goal (P${period}) — ${scorer} (${goalsA}-${goalsB})`,
           player: scorer,
         });
+        if (assistant !== scorer) {
+          events.push({
+            id: id(),
+            minute,
+            half: period,
+            kind: 'ASSIST',
+            team,
+            player: assistant,
+            detail: `Assist — ${assistant}`,
+          });
+        }
+        // Shots on goal: the scoring team's goal plus a spread of stops by both sides.
+        for (let s = 0; s < 9; s++) {
+          const shooterTeam = bernoulli(0.55, rng) ? team : opp;
+          events.push({
+            id: id(),
+            minute: pickInt(1, 60, rng),
+            half: Math.min(3, Math.ceil(minute / 20)),
+            kind: 'SHOT_ON_GOAL',
+            team: shooterTeam,
+            player: pick(shooterTeam === 'A' ? rosterA : rosterB, rng),
+            detail: `Shot on goal — ${pick(shooterTeam === 'A' ? rosterA : rosterB, rng)}`,
+          });
+        }
       }
     };
 
     addGoals('A', poisson(lambdaA, rng), teamAName, rosterA);
     addGoals('B', poisson(lambdaB, rng), teamBName, rosterB);
+
+    // Faceoffs won and icings as feed flavour (no score impact).
+    const emitHockeyFlavor = () => {
+      for (const [team, teamName, roster] of [
+        ['A', teamAName, rosterA],
+        ['B', teamBName, rosterB],
+      ] as const) {
+        const nFace = poisson(28, rng);
+        for (let i = 0; i < nFace; i++) {
+          const minute = pickInt(1, 60, rng);
+          events.push({
+            id: id(),
+            minute,
+            half: Math.min(3, Math.ceil(minute / 20)),
+            kind: 'FACEOFF_WIN',
+            team,
+            player: pick(roster, rng),
+            detail: `Faceoff won — ${pick(roster, rng)}`,
+          });
+        }
+        const nIce = poisson(1.5, rng);
+        for (let i = 0; i < nIce; i++) {
+          const minute = pickInt(1, 60, rng);
+          events.push({
+            id: id(),
+            minute,
+            half: Math.min(3, Math.ceil(minute / 20)),
+            kind: 'ICING',
+            team,
+            detail: `Icing — ${teamName}`,
+          });
+        }
+      }
+    };
+    emitHockeyFlavor();
 
     // Penalties.
     for (const [team, teamName, roster] of [

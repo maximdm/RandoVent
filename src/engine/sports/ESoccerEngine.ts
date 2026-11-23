@@ -44,6 +44,20 @@ export class ESoccerEngine implements SportEngine {
           detail: `${teamName} goal — ${scorer} (${goalsA}-${goalsB})`,
           player: scorer,
         });
+        if (rng() < 0.5) {
+          const mate = pick(roster, rng);
+          if (mate !== scorer) {
+            events.push({
+              id: id(),
+              minute,
+              half: minute <= 45 ? 1 : 2,
+              kind: 'ASSIST',
+              team,
+              detail: `Assist — ${mate}`,
+              player: mate,
+            });
+          }
+        }
       }
     };
 

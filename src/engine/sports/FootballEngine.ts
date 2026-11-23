@@ -87,12 +87,20 @@ export class FootballEngine implements SportEngine {
       const minute = randomMinute(rng);
       const scorer = pick(rosterA, rng);
       pushEvent(minute, 'GOAL', 'A', `${teamAName} goal — ${scorer} (${scoreA}-${scoreB})`, scorer);
+      if (rng() < 0.5) {
+        const mate = pick(rosterA, rng);
+        if (mate !== scorer) pushEvent(minute, 'ASSIST', 'A', `Assist — ${mate}`, mate);
+      }
     }
     for (let i = 0; i < goalsB; i++) {
       scoreB++;
       const minute = randomMinute(rng);
       const scorer = pick(rosterB, rng);
       pushEvent(minute, 'GOAL', 'B', `${teamBName} goal — ${scorer} (${scoreA}-${scoreB})`, scorer);
+      if (rng() < 0.5) {
+        const mate = pick(rosterB, rng);
+        if (mate !== scorer) pushEvent(minute, 'ASSIST', 'B', `Assist — ${mate}`, mate);
+      }
     }
 
     // Support events.

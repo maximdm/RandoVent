@@ -349,3 +349,70 @@ visually consistent and more usable:
 
 > Same storage caveat as M12/M13: theme persistence only writes to disk when a storage backend is
 > linked; in this dev sandbox it falls back to `system` for the session.
+
+## M15 — Realism enrichment, calibration tests, history, lottery extras, back-button & CI
+**Status:** ✅ Done. Implements the "recommended improvements" pass: richer per-sport event
+taxonomy + player box scores, statistical calibration tests (with slightly widened tolerance bands),
+on-device match history, lottery extras, an Android hardware back button + consistent header, and CI.
+
+### Enriched event taxonomy + player stats (#1)
+- `SportEventKind` (`src/engine/core/EventTypes.ts`) gained the §4 flavour events: tennis/TT
+  `ACE`, `DOUBLE_FAULT`, `WINNER`, `UNFORCED_ERROR`, `BREAK_POINT`, `NET_CORD`, `EDGE_BALL`,
+  `LONG_RALLY`; basketball `MISS_SHOT`, `REBOUND`, `ASSIST`, `STEAL`, `BLOCK`, `TURNOVER`;
+  hockey `SHOT_ON_GOAL`, `FACEOFF_WIN`, `ICING`; volleyball `KILL`, `SERVE_ACE`, `SERVE_ERROR`,
+  `ATTACK_ERROR`, `RECEPTION_ERROR`, `DIG`, `SET_ASSIST`; rugby `TACKLE`, `SCRUM`, `LINEOUT`,
+  `KNOCK_ON`; e-sport `KILL`, `HEADSHOT`, `ROUND_WIN`, `BOMB_PLANT`, `BOMB_DEFUSE`,
+  `OBJECTIVE_CAPTURE`, `CLUTCH`.
+- Each engine now emits these as **feed-only** events (no effect on scoring), using a **separate
+  deterministic RNG stream** in basketball so the scoring sequence is never perturbed by enrichment
+  (keeps the existing M6 quarter-scaling invariant test green).
+- `computePlayerStats` (`src/engine/stats.ts`) now builds a box score: `points`, `fouls`, plus
+  optional `rebounds`, `assists`, `steals`, `blocks`, `kills`. `BOX_VALUE` maps event kinds to the
+  tallies; `STAT_LABELS` covers all new kinds. `MatchSummaryScreen` renders a compact box line that
+  only shows categories a player actually accumulated. `EventFeed` badges the notable new events.
+
+### Calibration / statistical tests (#2)
+- `src/engine/__tests__/Calibration.test.ts` runs 400 seeds × sport and asserts the **average**
+  outcome sits inside a band a little wider than the strict `agents.md` §4 targets:
+  football avg goals/team (λ) ≈ 0.9–2.0 with <2% blowouts; basketball avg total/team 82–135;
+  hockey total 3.0–9.5; rugby Union total 14–62; tennis/table-tennis/volleyball/e-sport resolve to
+  their documented set/map ranges. Also asserts that the enriched events are actually present in the
+  logs.
+
+### On-device match history (#3)
+- New `src/storage/matchHistory.ts` mirrors the slip repository pattern: `MatchRecord` (sport, scores,
+  winner, seed, full `config`, label, timestamp), pure ops `addMatch` (caps at `MAX_HISTORY = 50`,
+  newest-first) / `removeMatch` / `clearHistory`, and a multi-backend `createMatchHistoryRepository`
+  (AsyncStorage → expo-file-system → in-memory).
+- `App` records every simulated match (with the **resolved** config + seed, so replay is
+  deterministic) and the new `HistoryScreen` lists past matches with score, winner, date, **Replay ↻**
+  (re-simulates from the stored seed straight to the summary) and **Delete** / **Clear all**. Home
+  gained a "📜 Match History" card.
+
+### Lottery extras (#4)
+- `LotteryScreen` presets (6/49, 5/35, 5/50, 7/49, Pick 3, Pick 4) that fill the generator fields.
+- **Copy** (clipboard) and **Share** (native share sheet) actions per slip.
+- **Check 🎯** per set: `checkMyNumbers` (`src/engine/lottery/Lottery.ts`) draws a winning
+  combination under the same conditions and reports how many of the player's numbers matched
+  (multiset count). Helpers `parseNumbers`, `drawWinning`, `countMatches` are unit-tested.
+
+### Android back button + consistent header (#5)
+- `App` wires `BackHandler.addEventListener('hardwareBackPress', …)` stepping back through the
+  in-app stack (pick→home, options→pick, match-live→options, match-summary→live, lottery/history→home;
+  home lets the OS handle exit).
+- `LiveMatchScreen` gained a consistent top bar with a **‹ Back** affordance (was missing a visible
+  back control), making the screen's header consistent with the rest of the app.
+
+### CI (#6)
+- `.github/workflows/ci.yml`: on push/PR, `npm ci` → `npm run typecheck` (`tsc --noEmit`) →
+  `npm test`. Runs on `main` and `feature/m9-stats`.
+
+**Acceptance**
+- `tsc --noEmit` clean; **all 132 tests pass** (was 109). New suites: `Calibration` (13), lottery
+  check helpers (8), `matchHistory` (4).
+- Enriched events appear in every applicable sport's log without altering scores/winners (verified by
+  the unchanged 109 prior tests + the calibration presence checks).
+- History records are capped at 50 and replay reproduces the stored seed; BackHandler + the new live
+  back bar preserve navigation correctness.
+- Same storage caveat as M12–M14: disk persistence requires a linked backend; in the sandbox it
+  falls back to in-memory for the session.

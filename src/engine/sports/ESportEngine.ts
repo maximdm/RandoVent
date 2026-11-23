@@ -1,7 +1,8 @@
 import { MatchConfig, SportKey } from '../core/MatchConfig';
-import { SimEvent, SimResult } from '../core/EventTypes';
+import { SimEvent, SimResult, SportEventKind } from '../core/EventTypes';
 import { SportEngine } from '../core/SportEngine';
-import { Rng, createRng, normal, bernoulli, clamp } from '../core/Distributions';
+import { defaultRoster } from '../core/roster';
+import { Rng, createRng, normal, bernoulli, clamp, pick } from '../core/Distributions';
 import { createIdFactory } from '../core/id';
 
 // E-Sport series: best-of N maps; each map is first to `roundTarget` round wins
@@ -42,8 +43,33 @@ export class ESportEngine implements SportEngine {
       }
       mapScores.push([a, b]);
       const w: 'A' | 'B' = a > b ? 'A' : 'B';
+      const winnerName = w === 'A' ? teamAName : teamBName;
       if (w === 'A') mapsA++;
       else mapsB++;
+      // Per-round flavour: each round has a winner, a kill (or two), occasional
+      // headshots, bomb plants/defuses or objective captures, and a clutch at match point.
+      const rosterA = config.participants?.teamARoster ?? defaultRoster('A', 5);
+      const rosterB = config.participants?.teamBRoster ?? defaultRoster('B', 5);
+      for (let rnd = 0; rnd < a + b; rnd++) {
+        const rt: 'A' | 'B' = rnd < a ? 'A' : 'B';
+        const rtName = rt === 'A' ? teamAName : teamBName;
+        const killer = pick(rt === 'A' ? rosterA : rosterB, rng);
+        events.push({ id: id(), minute: mapNum, half: 1, kind: 'ROUND_WIN' as SportEventKind, team: rt, detail: `Round win — ${rtName}` });
+        events.push({ id: id(), minute: mapNum, half: 1, kind: 'KILL' as SportEventKind, team: rt, player: killer, detail: `Kill — ${rtName} (${killer})` });
+        if (bernoulli(0.3, rng)) {
+          events.push({ id: id(), minute: mapNum, half: 1, kind: 'HEADSHOT' as SportEventKind, team: rt, player: killer, detail: `Headshot — ${rtName} (${killer})` });
+        }
+        const roll = rng();
+        if (roll < 0.3) {
+          events.push({ id: id(), minute: mapNum, half: 1, kind: 'BOMB_PLANT' as SportEventKind, team: rt, detail: `Bomb plant — ${rtName}` });
+        } else if (roll < 0.5) {
+          events.push({ id: id(), minute: mapNum, half: 1, kind: 'OBJECTIVE_CAPTURE' as SportEventKind, team: rt, detail: `Objective captured — ${rtName}` });
+        }
+        // Clutch: the deciding round of the map.
+        if (rnd === a + b - 1 && bernoulli(0.5, rng)) {
+          events.push({ id: id(), minute: mapNum, half: 1, kind: 'CLUTCH' as SportEventKind, team: rt, detail: `Clutch — ${winnerName}` });
+        }
+      }
       events.push({ id: id(), minute: mapNum, half: 1, kind: 'MAP_WIN', team: w, detail: `Map ${mapNum}: ${teamAName} ${a}-${b} ${teamBName}` });
       mapNum++;
     }

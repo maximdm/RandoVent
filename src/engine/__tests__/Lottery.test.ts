@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateLottery, LotteryError } from '../index';
+import { generateLottery, LotteryError, parseNumbers, drawWinning, countMatches, checkMyNumbers } from '../index';
 
 describe('generateLottery', () => {
   it('returns a single hyphen-joined string when sets is 1', () => {
@@ -43,5 +43,47 @@ describe('generateLottery', () => {
 
   it('throws on invalid range', () => {
     expect(() => generateLottery({ count: 1, min: 10, max: 1 })).toThrow(LotteryError);
+  });
+});
+
+describe('parseNumbers', () => {
+  it('parses a hyphen-joined padded string', () => {
+    expect(parseNumbers('03-12-27-31-45-49')).toEqual([3, 12, 27, 31, 45, 49]);
+  });
+
+  it('ignores stray spaces and non-numeric tokens', () => {
+    expect(parseNumbers(' 3 - 12 - x ')).toEqual([3, 12]);
+  });
+});
+
+describe('drawWinning / countMatches / checkMyNumbers', () => {
+  const cfg = { count: 6, min: 1, max: 49, allowDuplicates: false, sorted: true };
+
+  it('drawWinning respects the config and is seeded-deterministic', () => {
+    const a = drawWinning(cfg, 777);
+    const b = drawWinning(cfg, 777);
+    expect(a).toBe(b);
+    expect(a.split('-')).toHaveLength(6);
+  });
+
+  it('countMatches counts multiset overlap', () => {
+    // "03-12-27" vs "12-27-40": 12 and 27 overlap => 2
+    expect(countMatches('03-12-27', '12-27-40')).toBe(2);
+    expect(countMatches('03-12-27', '01-02-03')).toBe(1);
+    expect(countMatches('03-12-27', '99-98-97')).toBe(0);
+  });
+
+  it('countMatches treats duplicates as a multiset', () => {
+    // mine has two 5s, winning has one 5 => 1 match
+    expect(countMatches('05-05-09', '05-08-09')).toBe(2);
+  });
+
+  it('checkMyNumbers reports matches against a drawn winning line', () => {
+    const res = checkMyNumbers('03-12-27-31-45-49', cfg, 4242);
+    expect(res.total).toBe(6);
+    expect(res.matches).toBeGreaterThanOrEqual(0);
+    expect(res.matches).toBeLessThanOrEqual(6);
+    // The winning line itself is a valid 6/49 draw.
+    expect(res.winning.split('-')).toHaveLength(6);
   });
 });

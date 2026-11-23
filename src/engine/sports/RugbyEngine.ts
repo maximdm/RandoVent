@@ -59,6 +59,30 @@ export class RugbyEngine implements SportEngine {
     ptsA = scoreTeam('A', teamAName, rosterA, code === 'UNION' ? 3.2 : 4.0, 2.0, 0.4);
     ptsB = scoreTeam('B', teamBName, rosterB, code === 'UNION' ? 3.0 : 3.8, 1.8, 0.4);
 
+    // Set-piece and contact flavour (no score impact).
+    const emitRugbyFlavor = (team: 'A' | 'B', teamName: string, roster: string[]) => {
+      const emit = (kind: SportEventKind, n: number) => {
+        for (let i = 0; i < n; i++) {
+          events.push({
+            id: id(),
+            minute: pickInt(1, 80, rng),
+            half: halfPeriod(),
+            kind,
+            team,
+            player: pick(roster, rng),
+            detail: `${teamName} ${kind.toLowerCase().replace(/_/g, ' ')} — ${pick(roster, rng)}`,
+          });
+        }
+      };
+      emit('TACKLE', poisson(45, rng));
+      emit('SCRUM', poisson(12, rng));
+      emit('LINEOUT', poisson(14, rng));
+      emit('KNOCK_ON', poisson(3, rng));
+    };
+    const halfPeriod = (): 1 | 2 => (rng() < 0.5 ? 1 : 2);
+    emitRugbyFlavor('A', teamAName, rosterA);
+    emitRugbyFlavor('B', teamBName, rosterB);
+
     events.push({ id: id(), minute: 80, half: 1, kind: 'MATCH_END', team: ptsA === ptsB ? null : ptsA > ptsB ? 'A' : 'B', detail: `Final: ${teamAName} ${ptsA}-${ptsB} ${teamBName}` });
 
     return {

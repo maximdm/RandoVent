@@ -85,6 +85,26 @@ export class TennisEngine implements SportEngine {
       if (setWinner === 'A') setsA++;
       else setsB++;
 
+      // Enrich the feed with point-level flavour for the deciding game: aces,
+      // double faults, winners and unforced errors (no effect on the score).
+      const winnerName = setWinner === 'A' ? playerA : playerB;
+      const loserName = setWinner === 'A' ? playerB : playerA;
+      for (let i = 0; i < 3; i++) {
+        const r = rng();
+        if (r < 0.2) {
+          events.push({ id: id(), minute: setNum, half: setNum, kind: 'ACE', team: setWinner, detail: `Ace — ${winnerName}` });
+        } else if (r < 0.35) {
+          events.push({ id: id(), minute: setNum, half: setNum, kind: 'DOUBLE_FAULT', team: setWinner === 'A' ? 'B' : 'A', detail: `Double fault — ${loserName}` });
+        } else if (r < 0.6) {
+          events.push({ id: id(), minute: setNum, half: setNum, kind: 'WINNER', team: setWinner, detail: `Winner — ${winnerName}` });
+        } else if (r < 0.8) {
+          events.push({ id: id(), minute: setNum, half: setNum, kind: 'UNFORCED_ERROR', team: setWinner === 'A' ? 'B' : 'A', detail: `Unforced error — ${loserName}` });
+        }
+      }
+      if (bernoulli(0.5, rng)) {
+        events.push({ id: id(), minute: setNum, half: setNum, kind: 'BREAK_POINT', team: setWinner, detail: `Break point saved/converted — ${winnerName}` });
+      }
+
       const detail = `Set ${setNum}: ${playerA} ${gA}-${gB} ${playerB} (${setWinner === 'A' ? playerA : playerB} wins)`;
       events.push({ id: id(), minute: setNum, half: setNum, kind: 'SET_WIN', team: setWinner, detail });
       if (tiebreak) {

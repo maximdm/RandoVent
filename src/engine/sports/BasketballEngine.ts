@@ -27,6 +27,9 @@ export class BasketballEngine implements SportEngine {
     const scale = qLen / 12;
 
     const rng = createRng(config.seed ?? 0);
+    // A separate deterministic stream for flavour events so the scoring RNG
+    // sequence (and therefore final scores) is never perturbed by enrichment.
+    const frng = createRng(((config.seed ?? 0) ^ 0x9e3779b9) >>> 0);
     const teamAName = config.participants?.teamAName ?? 'TeamA';
     const teamBName = config.participants?.teamBName ?? 'TeamB';
     const rosterA = config.participants?.teamARoster ?? defaultRoster('A', 12);
@@ -51,6 +54,66 @@ export class BasketballEngine implements SportEngine {
       events.push({ id: id(), minute, half: 1, kind, team, player, detail: `${nameOf(team)} +${pts} — ${player}` });
       if (team === 'A') ptsA += pts;
       else ptsB += pts;
+      // Most made baskets are assisted — attribute to a random teammate.
+      if (pts !== 1 && bernoulli(0.6, frng)) {
+        const mate = pick(team === 'A' ? rosterA : rosterB, frng);
+        if (mate !== player) {
+          events.push({
+            id: id(),
+            minute,
+            half: 1,
+            kind: 'ASSIST',
+            team,
+            player: mate,
+            detail: `Assist — ${mate}`,
+          });
+        }
+      }
+    };
+
+    // Hustle/defensive events that enrich the feed without changing the score:
+    // rebounds, steals, blocks and turnovers, distributed per quarter.
+    const emitHustle = (
+      team: 'A' | 'B',
+      opp: 'A' | 'B',
+      roster: string[],
+      oppRoster: string[],
+      minStart: number,
+      minEnd: number,
+    ) => {
+      const emit = (kind: SportEventKind, t: 'A' | 'B', roster2: string[]) => {
+        events.push({
+          id: id(),
+          minute: pickInt(minStart, minEnd, frng),
+          half: 1,
+          kind,
+          team: t,
+          player: pick(roster2, frng),
+          detail: `${nameOf(t)} ${kind.toLowerCase().replace(/_/g, ' ')} — ${pick(roster2, frng)}`,
+        });
+      };
+      const n = (mean: number) => Math.max(0, Math.round(normal(mean * scale, mean * 0.3 * scale, frng)));
+      for (let i = 0; i < n(10); i++) emit('REBOUND', team, roster);
+      for (let i = 0; i < n(7); i++) emit('REBOUND', opp, oppRoster);
+      const hustleTeam = () => (bernoulli(0.5, frng) ? team : opp);
+      const hustleRoster = (t: 'A' | 'B') => (t === 'A' ? roster : oppRoster);
+      for (let i = 0; i < n(4); i++) {
+        const t = hustleTeam();
+        emit('STEAL', t, hustleRoster(t));
+      }
+      for (let i = 0; i < n(4); i++) {
+        const t = hustleTeam();
+        emit('BLOCK', t, hustleRoster(t));
+      }
+      for (let i = 0; i < n(6); i++) {
+        const t = hustleTeam();
+        emit('TURNOVER', t, hustleRoster(t));
+      }
+    };
+
+    // A missed field goal (no points) plus a contesting block chance.
+    const addMiss = (team: 'A' | 'B', minute: number, player: string) => {
+      events.push({ id: id(), minute, half: 1, kind: 'MISS_SHOT', team, player, detail: `Missed shot — ${player}` });
     };
 
     const shootFT = (team: 'A' | 'B', minute: number, player: string) => {
@@ -71,7 +134,8 @@ export class BasketballEngine implements SportEngine {
       }
     };
 
-    // Break a quarter's field-goal total into made 2/3-pt shots.
+    // Break a quarter's field-goal total into made 2/3-pt shots. For each made
+    // attempt we also emit a missed shot (misses outnumber makes at ~NBA rates).
     const distributeFG = (total: number, minStart: number, minEnd: number, team: 'A' | 'B', roster: string[]) => {
       let remaining = total;
       while (remaining > 0) {
@@ -82,7 +146,9 @@ export class BasketballEngine implements SportEngine {
         else pts = 2;
         if (pts > remaining) pts = remaining; // leftover becomes a free throw
         remaining -= pts;
-        addMade(team, pts, pickInt(minStart, minEnd, rng), pick(roster, rng));
+        const shooter = pick(roster, rng);
+        addMade(team, pts, pickInt(minStart, minEnd, rng), shooter);
+        if (bernoulli(0.45, frng)) addMiss(team, pickInt(minStart, minEnd, rng), pick(roster, frng));
       }
     };
 
@@ -159,6 +225,8 @@ export class BasketballEngine implements SportEngine {
       distributeFG(Math.max(0, Math.round(normal(27 * scale, 6 * scale, rng))), minStart, minEnd, 'B', rosterB);
       simulateFouls('A', 'B', rosterA, rosterB, minStart, minEnd);
       simulateFouls('B', 'A', rosterB, rosterA, minStart, minEnd);
+      emitHustle('A', 'B', rosterA, rosterB, minStart, minEnd);
+      emitHustle('B', 'A', rosterB, rosterA, minStart, minEnd);
       events.push({ id: id(), minute: minEnd, half: 1, kind: 'QUARTER_END', team: null, detail: `End of Q${q}` });
       recordQuarter();
     }
@@ -174,6 +242,8 @@ export class BasketballEngine implements SportEngine {
       distributeFG(Math.max(0, Math.round(normal(6 * (otLen / 12), 2 * (otLen / 12), rng))), minStart, minEnd, 'B', rosterB);
       simulateFouls('A', 'B', rosterA, rosterB, minStart, minEnd);
       simulateFouls('B', 'A', rosterB, rosterA, minStart, minEnd);
+      emitHustle('A', 'B', rosterA, rosterB, minStart, minEnd);
+      emitHustle('B', 'A', rosterB, rosterA, minStart, minEnd);
       events.push({ id: id(), minute: minEnd, half: 1, kind: 'OVERTIME', team: null, detail: `End of OT${otPeriod}` });
       recordQuarter();
       lastMinute = minEnd;
