@@ -14,7 +14,7 @@ export interface PlaybackSnapshot {
 // Point/score delta contributed by each event kind. Set/game/map-winning events
 // count as +1 toward that team's score (which is the scoreA/scoreB semantics for
 // tennis/volleyball/table-tennis/e-sport).
-const POINT_VALUE: Partial<Record<SportEventKind, number>> = {
+export const POINT_VALUE: Partial<Record<SportEventKind, number>> = {
   GOAL: 1,
   POINTS_2: 2,
   POINTS_3: 3,

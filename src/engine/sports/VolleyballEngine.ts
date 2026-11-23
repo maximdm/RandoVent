@@ -1,7 +1,8 @@
 import { MatchConfig, SportKey } from '../core/MatchConfig';
-import { SimEvent, SimResult } from '../core/EventTypes';
+import { SimEvent, SimResult, SportEventKind } from '../core/EventTypes';
 import { SportEngine } from '../core/SportEngine';
-import { Rng, createRng, normal, bernoulli, clamp } from '../core/Distributions';
+import { defaultRoster } from '../core/roster';
+import { Rng, createRng, normal, bernoulli, pick, clamp } from '../core/Distributions';
 import { createIdFactory } from '../core/id';
 
 // Rally scoring: sets to 25 (win by 2), deciding set to 15. BO3 / BO5.
@@ -19,6 +20,8 @@ export class VolleyballEngine implements SportEngine {
     const rng = createRng(config.seed ?? 0);
     const teamAName = config.participants?.teamAName ?? 'TeamA';
     const teamBName = config.participants?.teamBName ?? 'TeamB';
+    const rosterA = config.participants?.teamARoster ?? defaultRoster('A', 12);
+    const rosterB = config.participants?.teamBRoster ?? defaultRoster('B', 12);
     const pA = clamp(normal(0.5, 0.04, rng), 0.3, 0.7);
 
     const events: SimEvent[] = [];
@@ -34,10 +37,27 @@ export class VolleyballEngine implements SportEngine {
       const target = deciding ? 15 : 25;
       let a = 0;
       let b = 0;
+      let deuceEmitted = false;
       // Simulate rally by rally; cap defensively at target + 10 to guarantee termination.
       while (true) {
-        if (bernoulli(pA, rng)) a++;
+        const team: 'A' | 'B' = bernoulli(pA, rng) ? 'A' : 'B';
+        if (team === 'A') a++;
         else b++;
+        const scorer = pick(team === 'A' ? rosterA : rosterB, rng);
+        events.push({
+          id: id(),
+          minute: setNum,
+          half: 1,
+          kind: 'POINT' as SportEventKind,
+          team,
+          player: scorer,
+          detail: `Point — ${team === 'A' ? teamAName : teamBName} (${scorer}) ${a}-${b}`,
+        });
+        // Deuce: both teams at set point and tied (24-24 or 14-14) — emit once.
+        if (!deuceEmitted && a === target - 1 && b === target - 1) {
+          events.push({ id: id(), minute: setNum, half: 1, kind: 'DEUCE', team: null, detail: `Deuce in set ${setNum} (${a}-${b})` });
+          deuceEmitted = true;
+        }
         if ((a >= target || b >= target) && Math.abs(a - b) >= 2) break;
         if (a > target + 10 || b > target + 10) break;
       }

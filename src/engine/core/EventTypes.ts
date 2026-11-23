@@ -16,6 +16,7 @@ export type SportEventKind =
   // Tennis
   | 'SET_WIN'
   | 'TIEBREAK'
+  | 'DEUCE'
   | 'GAME'
   // Basketball
   | 'POINTS_2'

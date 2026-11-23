@@ -7,6 +7,8 @@ import {
   LotteryError,
   generateLottery,
   applyRedCardPenalty,
+  computePlayerStats,
+  topBy,
 } from '../index';
 
 // M6 — edge-case coverage: deuce/tiebreak bounds, red-card strength, overtime,
@@ -208,5 +210,98 @@ describe('M6 edge cases', () => {
         expect(a.events.map((e) => e.id)).toEqual(b.events.map((e) => e.id));
       }
     }
+  });
+
+  it('Player attribution: basketball points/fouls tally exactly to team totals', () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const r = getEngine(SportKey.BASKETBALL).simulate({
+        sport: SportKey.BASKETBALL,
+        mode: 'INSTANT',
+        seed,
+        options: { quarterLength: 12 },
+      } as MatchConfig);
+      const stats = computePlayerStats(r);
+      const sumPts = (rows: { points: number }[]) => rows.reduce((s, p) => s + p.points, 0);
+      const sumFouls = (rows: { fouls: number }[]) => rows.reduce((s, p) => s + p.fouls, 0);
+      expect(sumPts(stats.A)).toBe(r.scoreA);
+      expect(sumPts(stats.B)).toBe(r.scoreB);
+      const foulEventsA = r.events.filter((e) => e.kind === 'FOUL' && e.team === 'A').length;
+      const foulEventsB = r.events.filter((e) => e.kind === 'FOUL' && e.team === 'B').length;
+      expect(sumFouls(stats.A)).toBe(foulEventsA);
+      expect(sumFouls(stats.B)).toBe(foulEventsB);
+    }
+  });
+
+  it('Player attribution: football scorers/foul leaders derive from the log', () => {
+    let sawScorer = false;
+    for (let seed = 0; seed < 200; seed++) {
+      const r = getEngine(SportKey.FOOTBALL).simulate({ sport: SportKey.FOOTBALL, mode: 'INSTANT', seed } as MatchConfig);
+      const stats = computePlayerStats(r);
+      if (stats.A.length > 0 || stats.B.length > 0) sawScorer = true;
+      // Sum of goal-points equals goals scored.
+      const goalPtsA = stats.A.reduce((s, p) => s + p.points, 0);
+      const goalEventsA = r.events.filter((e) => e.kind === 'GOAL' && e.team === 'A').length;
+      expect(goalPtsA).toBe(goalEventsA);
+    }
+    expect(sawScorer).toBe(true);
+  });
+
+  it('Deuce badge: tennis emits DEUCE events across many seeds', () => {
+    let sawDeuce = false;
+    for (let seed = 0; seed < 400; seed++) {
+      const r = getEngine(SportKey.TENNIS).simulate({
+        sport: SportKey.TENNIS,
+        mode: 'INSTANT',
+        seed,
+        options: { matchFormat: 'BO3' },
+      } as MatchConfig);
+      if (r.events.some((e) => e.kind === 'DEUCE')) sawDeuce = true;
+    }
+    expect(sawDeuce).toBe(true);
+  });
+
+  it('Deuce badge: volleyball emits DEUCE at set point and attributes points', () => {
+    let sawDeuce = false;
+    for (let seed = 0; seed < 400; seed++) {
+      const r = getEngine(SportKey.VOLLEYBALL).simulate({
+        sport: SportKey.VOLLEYBALL,
+        mode: 'INSTANT',
+        seed,
+        options: { sets: 'BO5' },
+      } as MatchConfig);
+      if (r.events.some((e) => e.kind === 'DEUCE')) sawDeuce = true;
+      const stats = computePlayerStats(r);
+      // Every rally point is attributed to a player on a team.
+      const ptsEvents = r.events.filter((e) => e.kind === 'POINT').length;
+      const attributed = r.events.filter((e) => e.kind === 'POINT' && !!e.player && (e.team === 'A' || e.team === 'B')).length;
+      expect(attributed).toBe(ptsEvents);
+      expect(stats.A.length).toBeGreaterThan(0);
+      expect(stats.B.length).toBeGreaterThan(0);
+    }
+    expect(sawDeuce).toBe(true);
+  });
+
+  it('Player attribution: hockey goals + penalties derive from the log', () => {
+    let sawPenalty = false;
+    for (let seed = 0; seed < 200; seed++) {
+      const r = getEngine(SportKey.HOCKEY).simulate({ sport: SportKey.HOCKEY, mode: 'INSTANT', seed } as MatchConfig);
+      const stats = computePlayerStats(r);
+      if (r.events.some((e) => e.kind === 'PENALTY')) sawPenalty = true;
+      const goalPtsA = stats.A.reduce((s, p) => s + p.points, 0);
+      const goalEventsA = r.events.filter((e) => e.kind === 'GOAL' && e.team === 'A').length;
+      expect(goalPtsA).toBe(goalEventsA);
+    }
+    expect(sawPenalty).toBe(true);
+  });
+
+  it('topBy returns the highest-metric players, capped at n', () => {
+    const data = [
+      { name: 'x', points: 2, fouls: 0 },
+      { name: 'y', points: 9, fouls: 1 },
+      { name: 'z', points: 5, fouls: 3 },
+      { name: 'w', points: 1, fouls: 0 },
+    ];
+    const top = topBy(data, 'points', 2);
+    expect(top.map((p) => p.name)).toEqual(['y', 'z']);
   });
 });

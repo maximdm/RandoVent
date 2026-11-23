@@ -18,6 +18,8 @@ const KEY_EVENTS = new Set<SimEvent['kind']>([
   'MAP_WIN',
   'FOUL_OUT',
   'BONUS',
+  'TIEBREAK',
+  'DEUCE',
 ]);
 
 const Row = memo(function Row({ item }: { item: SimEvent }) {

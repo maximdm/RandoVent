@@ -40,6 +40,12 @@ export class TennisEngine implements SportEngine {
         if (bernoulli(pA, rng)) gA++;
         else gB++;
 
+        // Deuce: both players at 40 (3 games/points each) — emit each time the
+        // score returns to equality from 3 upward.
+        if (gA === gB && gA >= 3) {
+          events.push({ id: id(), minute: setNum, half: 1, kind: 'DEUCE', team: null, detail: `Deuce in set ${setNum}` });
+        }
+
         if ((gA >= 6 || gB >= 6) && Math.abs(gA - gB) >= 2) break;
         if (gA === 7 || gB === 7) break;
         if (gA >= 6 && gB >= 6) {

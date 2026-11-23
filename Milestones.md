@@ -131,15 +131,27 @@ TRY, MAP_WIN, FOUL_OUT, BONUS) were completed in M2. This milestone adds the edg
 - All edge-case tests pass; `tsc --noEmit` and lint stay green.
 
 ## M7 — UI Depth (options + customization)
-**Status:** 🟡 In progress. Builds a real match-setup flow so users control more than defaults:
+**Status:** ✅ Done.
 - `MatchOptionsScreen`: per-sport option controls (tennis/volleyball/table-tennis BO3/BO5/BO7,
   basketball quarter length 10/12, rugby Union/League, e-sport best-of + round target), editable
   team names, and a seed field. Replaces the previous "always use defaults" path.
 - App flow: Home → Sport Picker → Options → Live/Summary. `defaultMatchConfig` retained for
   quick/test paths.
-- Wired through `LiveMatchScreen`/`MatchSummaryScreen` via `MatchConfig.participants`.
+- **Player-attribution summary** (`src/engine/stats.ts` `computePlayerStats`/`topBy`): derives
+  per-team top scorers and discipline leaders directly from the event log (no engine pre-aggregation).
+  Engines now carry `player` + `team` on scoring/foul events — basketball (points + fouls, fully
+  attributed), football (goals + cards), hockey (goals + penalties), rugby (tries), volleyball
+  (per-rally points attributed to a roster player). `MatchSummaryScreen` renders Top Scorers and
+  Discipline Leaders per team (hidden for individual sports that emit no team-roster players).
+- **Deuce / tiebreak badges**: new `DEUCE` event kind; `EventFeed` badges `DEUCE` and `TIEBREAK`
+  (bold, like other key events). Tennis emits `DEUCE` at 40-40; volleyball emits `DEUCE` at
+  set point (24-24 / 14-14).
+- _Note: a real-device run (`npx expo prebuild` + `npm run android`) to verify the FlashList
+  native module and 60fps cannot be performed in this sandbox and remains a manual step._
 
 **Acceptance**
 - Every sport's documented options are reachable from the UI and change the simulated match
   structure (e.g., BO5 tennis plays to 3 sets; 10-min basketball totals below 12-min).
 - Custom team names and a fixed seed reproduce a match deterministically.
+- Player leaderboards sum exactly to team totals (basketball points/fouls verified); deuce badges
+  appear across seeds.

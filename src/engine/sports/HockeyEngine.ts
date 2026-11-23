@@ -60,13 +60,15 @@ export class HockeyEngine implements SportEngine {
       const n = poisson(3, rng);
       for (let i = 0; i < n; i++) {
         const minute = pickInt(1, 60, rng);
+        const player = pick(roster, rng);
         events.push({
           id: id(),
           minute,
           half: Math.min(3, Math.ceil(minute / 20)),
           kind: 'PENALTY' as SportEventKind,
           team,
-          detail: `${teamName} penalty — ${pick(roster, rng)}`,
+          player,
+          detail: `${teamName} penalty — ${player}`,
         });
       }
     }

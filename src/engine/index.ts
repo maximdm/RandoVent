@@ -16,4 +16,5 @@ export * from './sports/ESoccerEngine';
 export * from './sports/ESportEngine';
 export * from './registry';
 export * from './playback';
+export * from './stats';
 export * from './lottery/Lottery';
