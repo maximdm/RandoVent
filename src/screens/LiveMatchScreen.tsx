@@ -1,18 +1,19 @@
 import { View, Text, StyleSheet, Button } from 'react-native';
 import { EventFeed } from '../components/EventFeed';
-import { SampleMatch } from '../types';
+import { SimResult } from '../engine';
 
 interface Props {
-  match: SampleMatch;
+  match: SimResult;
   onSummary: () => void;
   onNewMatch: () => void;
 }
 
 export function LiveMatchScreen({ match, onSummary, onNewMatch }: Props) {
+  const { teamAName, teamBName } = match.metadata as { teamAName: string; teamBName: string };
   return (
     <View style={styles.container}>
       <Text style={styles.score}>
-        TeamA {match.homeGoals} - {match.awayGoals} TeamB
+        {teamAName} {match.scoreA} - {match.scoreB} {teamBName}
       </Text>
       <View style={styles.feed}>
         <EventFeed events={match.events} />

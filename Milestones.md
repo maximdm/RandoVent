@@ -4,6 +4,9 @@ Each milestone lists **Deliverables** and **Acceptance Criteria**. Rules, naming
 `MatchConfig` contract are defined in `agents.md`; the high-level approach is in `Plan.md`.
 
 ## M0 — Scaffold & Tooling
+**Status:** ✅ Done (Expo SDK 58 / React 19 / RN 0.88, TS strict). Zustand deferred — simple
+`useState` machine suffices for M0–M2; revisit when shared cross-screen state grows.
+
 **Deliverables**
 - React Native project (Expo or Bare workflow) with TypeScript `strict` mode enabled.
 - State management via Zustand (or Context + `useReducer`).
@@ -15,6 +18,11 @@ Each milestone lists **Deliverables** and **Acceptance Criteria**. Rules, naming
 - `tsc --noEmit` passes with `strict: true` and no `any`.
 
 ## M1 — Engine Core
+**Status:** ✅ Done. Implemented as `engine/core/Distributions.ts` (seeded PRNG + Poisson/Normal/
+weighted/bernoulli/pick), `MatchConfig.ts` (SportKey enum + discriminated union), `EventTypes.ts`
+(SimEvent/SimResult), and `SportEngine.ts` base interface. Note: `SimulationClock` folded into
+Instant/Accelerated mode handling (M4); engine is pure TS and framework-free.
+
 **Deliverables**
 - `engine/core/SimulationClock.ts` (Instant vs Accelerated tick logic).
 - `engine/core/Distributions.ts` (Poisson, Normal, weighted helpers + **seeded PRNG**).
@@ -27,6 +35,9 @@ Each milestone lists **Deliverables** and **Acceptance Criteria**. Rules, naming
 - `MatchConfig` typechecks for every sport with the correct per-sport options.
 
 ## M2 — Football Vertical Slice
+**Status:** ✅ Done (engine + screens + FlashList feed wired). `EventFeed` replaces the planned
+`Scoreboard`/`SpeedControls` for now (single live screen; Accel controls land in M4).
+
 **Deliverables**
 - `FootballEngine.ts`: Poisson goals (λ ≈ 1.1–1.6), cards, corners, fouls, offsides; player attribution.
 - Screens: `MatchSetupScreen`, `LiveMatchScreen`, `MatchSummaryScreen`.
@@ -65,6 +76,8 @@ Each milestone lists **Deliverables** and **Acceptance Criteria**. Rules, naming
 - Accelerated UI updates feel continuous and stay at 60fps on Android.
 
 ## M5 — Lottery Generator
+**Status:** 🟡 Engine done (`src/engine/lottery/Lottery.ts` + tests); UI screen pending.
+
 **Deliverables**
 - `LotteryEngine.ts` + UI, implementing `LotteryConfig` (`agents.md` §7):
   `count`, `min`, `max`, `allowDuplicates`, `sorted`, `sets`, `seed`.

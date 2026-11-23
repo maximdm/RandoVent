@@ -52,3 +52,26 @@ export function weightedPick(weights: number[], rng: Rng): number {
   }
   return weights.length - 1;
 }
+
+// Bernoulli trial: returns true with probability p.
+export function bernoulli(p: number, rng: Rng): boolean {
+  if (p < 0 || p > 1) throw new Error('bernoulli: p must be in [0, 1]');
+  return rng() < p;
+}
+
+// Uniform integer in [min, max] inclusive.
+export function pickInt(min: number, max: number, rng: Rng): number {
+  if (max < min) throw new Error('pickInt: max must be >= min');
+  return min + Math.floor(rng() * (max - min + 1));
+}
+
+// Pick a uniformly random element from a non-empty array.
+export function pick<T>(items: readonly T[], rng: Rng): T {
+  if (items.length === 0) throw new Error('pick: empty array');
+  return items[pickInt(0, items.length - 1, rng)];
+}
+
+// Clamp a value into [min, max].
+export function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
