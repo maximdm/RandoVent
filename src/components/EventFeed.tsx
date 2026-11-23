@@ -25,10 +25,10 @@ const KEY_EVENTS = new Set<SimEvent['kind']>([
 
 const Row = memo(function Row({ item }: { item: SimEvent }) {
   const isKey = KEY_EVENTS.has(item.kind);
-  const accent = item.team === 'A' ? '#1565c0' : item.team === 'B' ? '#c62828' : '#555';
+  const accent = item.team === 'A' ? '#2563eb' : item.team === 'B' ? '#dc2626' : '#94a3b8';
   const label = item.kind.replace(/_/g, ' ');
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, { borderLeftColor: accent }]}>
       <Text style={styles.minute}>{item.minute}'</Text>
       {isKey ? (
         <View style={[styles.badge, { backgroundColor: accent }]}>
@@ -50,6 +50,7 @@ export function EventFeed({ events }: EventFeedProps) {
       data={events}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => <Row item={item} />}
+      contentContainerStyle={{ paddingHorizontal: 4 }}
     />
   );
 }
@@ -59,14 +60,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#ddd',
+    paddingHorizontal: 10,
+    paddingLeft: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#cbd5e1',
+    marginBottom: 6,
+    backgroundColor: '#fff',
+    borderRadius: 8,
     gap: 8,
   },
-  minute: { width: 38, fontWeight: '700', color: '#444' },
+  minute: { width: 38, fontWeight: '700', color: '#475569' },
   kind: { width: 96, fontWeight: '600', fontSize: 12 },
   badge: { width: 96, borderRadius: 4, paddingVertical: 2, paddingHorizontal: 4 },
   badgeText: { color: '#fff', fontWeight: '700', fontSize: 11, textAlign: 'center' },
-  detail: { flex: 1, fontSize: 13 },
+  detail: { flex: 1, fontSize: 13, color: '#334155' },
 });

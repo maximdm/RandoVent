@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, Button } from 'react-native';
+import { View, Text } from 'react-native';
+import { ScrollScreen, Card, Title, Subtitle, Button } from '../components/ui';
 
 interface Props {
   onMatch: () => void;
@@ -7,22 +8,45 @@ interface Props {
 
 export function HomeScreen({ onMatch, onLottery }: Props) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>RandoVent</Text>
-      <Text style={styles.subtitle}>Multi-Sport Realistic Match Simulator</Text>
-      <View style={styles.buttons}>
-        <Button title="Simulate Match" onPress={onMatch} />
-        <View style={styles.gap} />
-        <Button title="Lottery Generator" onPress={onLottery} />
+    <ScrollScreen contentContainerStyle={{ paddingTop: 40 }}>
+      <View style={{ paddingHorizontal: 4, marginBottom: 20 }}>
+        <Title>RandoVent</Title>
+        <Subtitle>Multi-sport realistic match simulator &amp; lottery generator</Subtitle>
       </View>
-    </View>
+
+      <Card style={{ marginBottom: 14 }}>
+        <Text style={titleStyle}>⚽ Simulate Match</Text>
+        <Text style={bodyStyle}>
+          Pick from 9 sports, tune the rules, and watch a realistic, play-by-play
+          match unfold with live stats and player leaders.
+        </Text>
+        <View style={{ marginTop: 12 }}>
+          <Button title="Start a match" onPress={onMatch} block />
+        </View>
+      </Card>
+
+      <Card style={{ marginBottom: 14 }}>
+        <Text style={titleStyle}>🎲 Lottery Generator</Text>
+        <Text style={bodyStyle}>
+          Draw lucky number sets with custom ranges, duplicates, sorting and a
+          seeded RNG. Save up to 10 sets in your notebook.
+        </Text>
+        <View style={{ marginTop: 12 }}>
+          <Button title="Open lottery" onPress={onLottery} variant="secondary" block />
+        </View>
+      </Card>
+    </ScrollScreen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 12 },
-  title: { fontSize: 30, fontWeight: '700' },
-  subtitle: { fontSize: 16, color: '#666', marginBottom: 16, textAlign: 'center' },
-  buttons: { width: 260 },
-  gap: { height: 12 },
-});
+const titleStyle = {
+  fontSize: 19,
+  fontWeight: '800' as const,
+  color: '#0f172a',
+};
+const bodyStyle = {
+  fontSize: 14,
+  color: '#475569',
+  marginTop: 6,
+  lineHeight: 20,
+};

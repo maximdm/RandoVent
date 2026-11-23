@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { EventFeed } from '../components/EventFeed';
 import { MatchStatsView } from '../components/MatchStatsView';
 import { SimResult, runningScore } from '../engine';
 import { useMatchPlayback } from '../hooks/useMatchPlayback';
+import { Screen, Card, Button, Segmented, palette } from '../components/ui';
 
 interface Props {
   match: SimResult;
@@ -14,9 +15,7 @@ interface Props {
 type Mode = 'INSTANT' | 'ACCELERATED';
 type LiveView = 'feed' | 'stats';
 
-// Self-contained Accelerated view: clock, running score, controls, and the
-// progressively revealed feed. Kept as its own component so the playback hook is
-// only mounted in Accelerated mode (React hooks rules).
+// Accelerated view: clock, running score, controls and the progressively revealed feed.
 function AcceleratedView({ match, onSummary, onNewMatch }: Props) {
   const { snapshot, status, pause, resume, reset, jumpToEnd } = useMatchPlayback(match);
   const [a, b] = runningScore(match, snapshot.revealed);
@@ -26,10 +25,12 @@ function AcceleratedView({ match, onSummary, onNewMatch }: Props) {
     : 1;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.score}>
-        {teamAName} {a} - {b} {teamBName}
-      </Text>
+    <View style={{ flex: 1 }}>
+      <View style={styles.scoreRow}>
+        <Text style={[styles.bigScore, { color: palette.teamA }]}>{a}</Text>
+        <Text style={styles.scoreDash}>–</Text>
+        <Text style={[styles.bigScore, { color: palette.teamB }]}>{b}</Text>
+      </View>
       <Text style={styles.clock}>
         Match clock {Math.floor(snapshot.currentMinute)} / {snapshot.totalMinutes} ·{' '}
         {snapshot.revealedCount}/{snapshot.totalCount} events
@@ -48,8 +49,8 @@ function AcceleratedView({ match, onSummary, onNewMatch }: Props) {
         ) : (
           <Button title="Resume" onPress={resume} disabled={status === 'finished'} />
         )}
-        <Button title="Reset" onPress={reset} />
-        <Button title="Skip" onPress={jumpToEnd} disabled={status === 'finished'} />
+        <Button title="Reset" onPress={reset} variant="secondary" />
+        <Button title="Skip" onPress={jumpToEnd} variant="secondary" disabled={status === 'finished'} />
       </View>
     </View>
   );
@@ -66,59 +67,82 @@ export function LiveMatchScreen({ match, onSummary, onNewMatch }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.score}>
-        {teamAName} {a} - {b} {teamBName}
-      </Text>
-      <Text style={styles.seed}>Seed: {seed === undefined ? '—' : seed}</Text>
-
-      <View style={styles.modeToggle}>
-        <Button title="Instant" onPress={() => setMode('INSTANT')} />
-        <Button title="Accelerated" onPress={() => setMode('ACCELERATED')} />
-      </View>
-
-      {liveView === 'stats' ? (
-        <MatchStatsView match={match} />
-      ) : mode === 'INSTANT' ? (
-        <View style={styles.feed}>
-          <EventFeed events={match.events} />
+    <Screen>
+      <Card style={styles.header}>
+        <View style={styles.teamNames}>
+          <Text style={[styles.teamName, { color: palette.teamA }]}>{teamAName}</Text>
+          <Text style={styles.teamName}>vs</Text>
+          <Text style={[styles.teamName, { color: palette.teamB }]}>{teamBName}</Text>
         </View>
-      ) : (
-        <AcceleratedView match={match} onSummary={onSummary} onNewMatch={onNewMatch} />
-      )}
+        <View style={styles.scoreRow}>
+          <Text style={[styles.bigScore, { color: palette.teamA }]}>{a}</Text>
+          <Text style={styles.scoreDash}>–</Text>
+          <Text style={[styles.bigScore, { color: palette.teamB }]}>{b}</Text>
+        </View>
+        <Text style={styles.seed}>Seed: {seed === undefined ? '—' : seed}</Text>
+      </Card>
 
-      <View style={styles.controls}>
-        <Button title={liveView === 'stats' ? 'Feed' : 'Stats'} onPress={() => setLiveView(liveView === 'stats' ? 'feed' : 'stats')} />
-        <Button title="Summary" onPress={onSummary} />
-        <Button title="New Match" onPress={onNewMatch} />
+      <Segmented
+        options={[
+          { label: 'Instant', value: 'INSTANT' },
+          { label: 'Accelerated', value: 'ACCELERATED' },
+        ]}
+        selected={mode}
+        onSelect={(v) => setMode(v as Mode)}
+      />
+
+      <Segmented
+        options={[
+          { label: 'Feed', value: 'feed' },
+          { label: 'Stats', value: 'stats' },
+        ]}
+        selected={liveView}
+        onSelect={(v) => setLiveView(v as LiveView)}
+      />
+
+      <View style={styles.content}>
+        {liveView === 'stats' ? (
+          <MatchStatsView match={match} />
+        ) : mode === 'INSTANT' ? (
+          <View style={styles.feed}>
+            <EventFeed events={match.events} />
+          </View>
+        ) : (
+          <AcceleratedView match={match} onSummary={onSummary} onNewMatch={onNewMatch} />
+        )}
       </View>
-    </View>
+
+      <View style={styles.bottomControls}>
+        <View style={{ flex: 1 }}>
+          <Button title="Summary" onPress={onSummary} variant="secondary" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button title="New Match" onPress={onNewMatch} />
+        </View>
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  score: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
-  seed: { fontSize: 13, color: '#777', textAlign: 'center', marginBottom: 8 },
-  clock: { fontSize: 13, color: '#555', textAlign: 'center', marginBottom: 6 },
+  header: { marginBottom: 12, alignItems: 'center' },
+  teamNames: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  teamName: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
+  scoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  bigScore: { fontSize: 40, fontWeight: '800' },
+  scoreDash: { fontSize: 30, color: '#94a3b8' },
+  seed: { fontSize: 13, color: '#64748b', marginTop: 4 },
+  clock: { fontSize: 13, color: '#64748b', textAlign: 'center', marginBottom: 6 },
   progress: {
-    height: 4,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 3,
     marginBottom: 8,
     overflow: 'hidden',
   },
-  progressFill: { height: 4, backgroundColor: '#1565c0' },
+  progressFill: { height: 6, backgroundColor: palette.primary },
   feed: { flex: 1 },
-  controls: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 6,
-  },
-  modeToggle: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-    marginBottom: 8,
-  },
+  content: { flex: 1, marginTop: 12 },
+  controls: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 6 },
+  bottomControls: { flexDirection: 'row', gap: 10, marginTop: 12 },
 });

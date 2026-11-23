@@ -1,42 +1,57 @@
-import { View, Text, StyleSheet, Button, ScrollView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { SportKey } from '../engine';
+import { ScrollScreen, Card, Button } from '../components/ui';
 
 interface Props {
   onPick: (sport: SportKey) => void;
   onBack: () => void;
 }
 
-const SPORTS: Array<{ key: SportKey; label: string }> = [
-  { key: SportKey.FOOTBALL, label: 'Football' },
-  { key: SportKey.TENNIS, label: 'Tennis' },
-  { key: SportKey.BASKETBALL, label: 'Basketball' },
-  { key: SportKey.HOCKEY, label: 'Ice Hockey' },
-  { key: SportKey.VOLLEYBALL, label: 'Volleyball' },
-  { key: SportKey.TABLE_TENNIS, label: 'Table Tennis' },
-  { key: SportKey.RUGBY, label: 'Rugby' },
-  { key: SportKey.E_SOCCER, label: 'E-Soccer' },
-  { key: SportKey.E_SPORT, label: 'E-Sport' },
+const SPORTS: Array<{ key: SportKey; label: string; tag: string; emoji: string }> = [
+  { key: SportKey.FOOTBALL, label: 'Football', tag: '11 v 11 · 90 min', emoji: '⚽' },
+  { key: SportKey.TENNIS, label: 'Tennis', tag: 'Best of 3 / 5 sets', emoji: '🎾' },
+  { key: SportKey.BASKETBALL, label: 'Basketball', tag: '4 quarters', emoji: '🏀' },
+  { key: SportKey.HOCKEY, label: 'Ice Hockey', tag: '3 periods · shootout', emoji: '🏒' },
+  { key: SportKey.VOLLEYBALL, label: 'Volleyball', tag: 'Rally · sets', emoji: '🏐' },
+  { key: SportKey.TABLE_TENNIS, label: 'Table Tennis', tag: 'Best of 5 / 7', emoji: '🏓' },
+  { key: SportKey.RUGBY, label: 'Rugby', tag: 'Tries & goals', emoji: '🏉' },
+  { key: SportKey.E_SOCCER, label: 'E-Soccer', tag: 'Virtual 90 min', emoji: '🎮' },
+  { key: SportKey.E_SPORT, label: 'E-Sport', tag: 'Best of maps', emoji: '🕹️' },
 ];
 
 export function SportPickerScreen({ onPick, onBack }: Props) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Choose a Sport</Text>
-      <ScrollView style={styles.list}>
+    <ScrollScreen>
+      <View style={styles.grid}>
         {SPORTS.map((s) => (
-          <View key={s.key} style={styles.row}>
-            <Button title={s.label} onPress={() => onPick(s.key)} />
-          </View>
+          <Card key={s.key} style={styles.cell}>
+            <Text style={styles.emoji}>{s.emoji}</Text>
+            <Text style={styles.label}>{s.label}</Text>
+            <Text style={styles.tag}>{s.tag}</Text>
+            <View style={styles.spacer} />
+            <Button title="Select" onPress={() => onPick(s.key)} block />
+          </Card>
         ))}
-      </ScrollView>
-      <Button title="Back" onPress={onBack} />
-    </View>
+      </View>
+      <View style={{ marginTop: 16 }}>
+        <Button title="Back" onPress={onBack} variant="ghost" block />
+      </View>
+    </ScrollScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 22, fontWeight: '700', marginBottom: 12 },
-  list: { flex: 1 },
-  row: { marginVertical: 4 },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  cell: {
+    width: '48.5%',
+    marginBottom: 12,
+  },
+  emoji: { fontSize: 30 },
+  label: { fontSize: 17, fontWeight: '700', color: '#0f172a', marginTop: 6 },
+  tag: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  spacer: { flex: 1, minHeight: 10 },
 });

@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, Button, ScrollView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { SimResult, computePlayerStats, topBy, PlayerStat } from '../engine';
 import { MatchStatsSections } from '../components/MatchStatsView';
+import { ScrollScreen, Card, Button, SectionTitle, palette } from '../components/ui';
 
 interface Props {
   match: SimResult;
@@ -12,53 +13,6 @@ const WINNER_LABEL: Record<SimResult['winner'], string> = {
   B: 'Team B wins',
   DRAW: 'Draw',
 };
-
-export function MatchSummaryScreen({ match, onBack }: Props) {
-  const { teamAName, teamBName, seed } = match.metadata as {
-    teamAName: string;
-    teamBName: string;
-    seed?: number;
-  };
-  const stats = computePlayerStats(match);
-  const hasStats = stats.A.length > 0 || stats.B.length > 0;
-  const hasFouls = stats.A.some((s) => s.fouls > 0) || stats.B.some((s) => s.fouls > 0);
-
-  return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Match Summary</Text>
-      <Text style={styles.score}>
-        {teamAName} {match.scoreA} - {match.scoreB} {teamBName}
-      </Text>
-      <Text style={styles.stat}>Result: {WINNER_LABEL[match.winner]}</Text>
-      <Text style={styles.stat}>Seed: {seed === undefined ? '—' : seed}</Text>
-      <Text style={styles.stat}>Total events: {match.events.length}</Text>
-
-      <View style={styles.section}>
-        <MatchStatsSections match={match} />
-      </View>
-
-      {hasStats && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Top Scorers</Text>
-          <PlayerTable team={teamAName} rows={topBy(stats.A, 'points')} />
-          <PlayerTable team={teamBName} rows={topBy(stats.B, 'points')} />
-        </View>
-      )}
-
-      {hasStats && hasFouls && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Discipline Leaders (Fouls)</Text>
-          <PlayerTable team={teamAName} rows={topBy(stats.A, 'fouls').filter((s) => s.fouls > 0)} />
-          <PlayerTable team={teamBName} rows={topBy(stats.B, 'fouls').filter((s) => s.fouls > 0)} />
-        </View>
-      )}
-
-      <View style={styles.actions}>
-        <Button title="Back to Live" onPress={onBack} />
-      </View>
-    </ScrollView>
-  );
-}
 
 function PlayerTable({ team, rows }: { team: string; rows: PlayerStat[] }) {
   if (rows.length === 0) return null;
@@ -78,15 +32,69 @@ function hasFoulsRow(r: PlayerStat): boolean {
   return r.fouls > 0;
 }
 
+export function MatchSummaryScreen({ match, onBack }: Props) {
+  const { teamAName, teamBName, seed } = match.metadata as {
+    teamAName: string;
+    teamBName: string;
+    seed?: number;
+  };
+  const stats = computePlayerStats(match);
+  const hasStats = stats.A.length > 0 || stats.B.length > 0;
+  const hasFouls = stats.A.some((s) => s.fouls > 0) || stats.B.some((s) => s.fouls > 0);
+
+  return (
+    <ScrollScreen>
+      <Card style={styles.hero}>
+        <View style={styles.teamNames}>
+          <Text style={[styles.teamName, { color: palette.teamA }]}>{teamAName}</Text>
+          <Text style={styles.teamName}>vs</Text>
+          <Text style={[styles.teamName, { color: palette.teamB }]}>{teamBName}</Text>
+        </View>
+        <View style={styles.scoreRow}>
+          <Text style={[styles.bigScore, { color: palette.teamA }]}>{match.scoreA}</Text>
+          <Text style={styles.scoreDash}>–</Text>
+          <Text style={[styles.bigScore, { color: palette.teamB }]}>{match.scoreB}</Text>
+        </View>
+        <Text style={styles.result}>{WINNER_LABEL[match.winner]}</Text>
+        <Text style={styles.meta}>
+          Seed: {seed === undefined ? '—' : seed} · {match.events.length} events
+        </Text>
+      </Card>
+
+      <Card style={{ marginBottom: 14 }}>
+        <MatchStatsSections match={match} />
+      </Card>
+
+      {hasStats && (
+        <Card style={{ marginBottom: 14 }}>
+          <SectionTitle>Top Scorers</SectionTitle>
+          <PlayerTable team={teamAName} rows={topBy(stats.A, 'points')} />
+          <PlayerTable team={teamBName} rows={topBy(stats.B, 'points')} />
+        </Card>
+      )}
+
+      {hasStats && hasFouls && (
+        <Card style={{ marginBottom: 14 }}>
+          <SectionTitle>Discipline Leaders (Fouls)</SectionTitle>
+          <PlayerTable team={teamAName} rows={topBy(stats.A, 'fouls').filter((s) => s.fouls > 0)} />
+          <PlayerTable team={teamBName} rows={topBy(stats.B, 'fouls').filter((s) => s.fouls > 0)} />
+        </Card>
+      )}
+
+      <Button title="Back to Home" onPress={onBack} block />
+    </ScrollScreen>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, gap: 8 },
-  title: { fontSize: 24, fontWeight: '700', marginBottom: 8 },
-  score: { fontSize: 20, textAlign: 'center', marginBottom: 4 },
-  stat: { fontSize: 16, color: '#444' },
-  section: { marginTop: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  hero: { marginBottom: 14, alignItems: 'center' },
+  teamNames: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  teamName: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
+  scoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  bigScore: { fontSize: 44, fontWeight: '800' },
+  scoreDash: { fontSize: 32, color: '#94a3b8' },
+  result: { fontSize: 16, fontWeight: '700', color: palette.text, marginTop: 4 },
+  meta: { fontSize: 13, color: palette.subtext, marginTop: 2 },
   teamBlock: { marginBottom: 10 },
-  teamName: { fontSize: 15, fontWeight: '600', color: '#1565c0' },
-  playerRow: { fontSize: 14, color: '#333', paddingVertical: 2 },
-  actions: { marginTop: 16 },
+  playerRow: { fontSize: 14, color: '#334155', paddingVertical: 2 },
 });

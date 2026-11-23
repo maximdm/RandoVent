@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, Button, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { generateLottery, LotteryError } from '../engine';
 import {
   savedSetsRepo,
@@ -9,9 +9,42 @@ import {
   MAX_SAVED_SETS,
   SavedLotterySet,
 } from '../storage/savedSets';
+import {
+  ScrollScreen,
+  Card,
+  Field,
+  Input,
+  Button,
+  Segmented,
+  SectionTitle,
+  palette,
+} from '../components/ui';
 
 interface Props {
   onBack: () => void;
+}
+
+function BoolSegment({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <Field label={label}>
+      <Segmented
+        options={[
+          { label: 'On', value: 'on' },
+          { label: 'Off', value: 'off' },
+        ]}
+        selected={value ? 'on' : 'off'}
+        onSelect={(v) => onChange(v === 'on')}
+      />
+    </Field>
+  );
 }
 
 export function LotteryScreen({ onBack }: Props) {
@@ -28,7 +61,6 @@ export function LotteryScreen({ onBack }: Props) {
   const [savedSets, setSavedSets] = useState<SavedLotterySet[]>([]);
   const [fullHint, setFullHint] = useState(false);
 
-  // Load any previously saved notebook on mount.
   useEffect(() => {
     let active = true;
     void savedSetsRepo.load().then((loaded) => {
@@ -91,137 +123,140 @@ export function LotteryScreen({ onBack }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Lottery Generator</Text>
-      <ScrollView style={styles.form}>
-        <Text style={styles.label}>Count</Text>
-        <TextInput style={styles.input} keyboardType="number-pad" value={count} onChangeText={setCount} />
-        <Text style={styles.label}>Min</Text>
-        <TextInput style={styles.input} keyboardType="number-pad" value={min} onChangeText={setMin} />
-        <Text style={styles.label}>Max</Text>
-        <TextInput style={styles.input} keyboardType="number-pad" value={max} onChangeText={setMax} />
-        <Text style={styles.label}>Sets</Text>
-        <TextInput style={styles.input} keyboardType="number-pad" value={sets} onChangeText={setSets} />
+    <ScrollScreen>
+      <SectionTitle>Lottery Generator</SectionTitle>
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Allow duplicates</Text>
-          <Switch value={allowDuplicates} onValueChange={setAllowDuplicates} />
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Sorted</Text>
-          <Switch value={sorted} onValueChange={setSorted} />
-        </View>
-
-        <Text style={styles.label}>Seed (optional)</Text>
-        <TextInput style={styles.input} keyboardType="number-pad" value={seed} onChangeText={setSeed} />
-
-        <Button title="Generate" onPress={run} />
-
-        {error && <Text style={styles.error}>⚠ {error}</Text>}
-
-        {result && (
-          <View style={styles.result}>
-            <Text style={styles.resultTitle}>Result</Text>
-            {lines.map((line, i) => (
-              <View key={i} style={styles.resultLine}>
-                <Text style={styles.line}>{line}</Text>
-                <View style={styles.lineActions}>
-                  <Button title="Save" onPress={() => saveLine(line)} />
-                </View>
-              </View>
-            ))}
+      <Card style={{ marginBottom: 14 }}>
+        <View style={styles.grid2}>
+          <View style={styles.cell}>
+            <Field label="Count">
+              <Input value={count} onChangeText={setCount} keyboardType="numeric" />
+            </Field>
           </View>
+          <View style={styles.cell}>
+            <Field label="Sets">
+              <Input value={sets} onChangeText={setSets} keyboardType="numeric" />
+            </Field>
+          </View>
+          <View style={styles.cell}>
+            <Field label="Min">
+              <Input value={min} onChangeText={setMin} keyboardType="numeric" />
+            </Field>
+          </View>
+          <View style={styles.cell}>
+            <Field label="Max">
+              <Input value={max} onChangeText={setMax} keyboardType="numeric" />
+            </Field>
+          </View>
+        </View>
+        <Field label="Seed" hint="Optional — blank = random">
+          <Input value={seed} onChangeText={setSeed} keyboardType="numeric" placeholder="blank = random" />
+        </Field>
+        <BoolSegment label="Allow duplicates" value={allowDuplicates} onChange={setAllowDuplicates} />
+        <BoolSegment label="Sorted" value={sorted} onChange={setSorted} />
+        <View style={{ marginTop: 4 }}>
+          <Button title="Generate" onPress={run} block />
+        </View>
+      </Card>
+
+      {error && (
+        <Card style={styles.errorCard}>
+          <Text style={styles.errorText}>⚠ {error}</Text>
+        </Card>
+      )}
+
+      {result && (
+        <Card style={{ marginBottom: 14 }}>
+          <SectionTitle>Result</SectionTitle>
+          {lines.map((line, i) => (
+            <View key={i} style={styles.resultLine}>
+              <Text style={styles.line}>{line}</Text>
+              <Button title="Save" onPress={() => saveLine(line)} />
+            </View>
+          ))}
+        </Card>
+      )}
+
+      <Card style={{ marginBottom: 14 }}>
+        <View style={styles.notebookHeader}>
+          <SectionTitle style={{ marginBottom: 0 }}>
+            Saved Sets ({savedSets.length}/{MAX_SAVED_SETS})
+          </SectionTitle>
+          {savedSets.length > 0 && (
+            <Button title="Clear all" onPress={clearAll} variant="ghost" />
+          )}
+        </View>
+
+        {fullHint && (
+          <Text style={styles.errorText}>
+            Notebook is full ({MAX_SAVED_SETS}). Delete or replace a set to add more.
+          </Text>
         )}
 
-        {/* Saved notebook */}
-        <View style={styles.notebook}>
-          <View style={styles.notebookHeader}>
-            <Text style={styles.resultTitle}>
-              Saved Sets ({savedSets.length}/{MAX_SAVED_SETS})
-            </Text>
-            {savedSets.length > 0 && <Button title="Clear all" onPress={clearAll} />}
-          </View>
+        {savedSets.length === 0 && !fullHint && (
+          <Text style={styles.muted}>No saved sets yet — generate and tap Save.</Text>
+        )}
 
-          {fullHint && (
-            <Text style={styles.error}>
-              Notebook is full ({MAX_SAVED_SETS}). Delete or replace a set to add more.
-            </Text>
-          )}
-
-          {savedSets.length === 0 && (
-            <Text style={styles.muted}>No saved sets yet — generate and tap Save.</Text>
-          )}
-
-          {savedSets.map((s) => (
-            <View key={s.id} style={styles.savedRow}>
-              <TextInput
-                style={styles.noteInput}
-                value={s.label}
-                placeholder="Note / label"
-                onChangeText={(t) => editSlot(s.id, { label: t })}
-              />
-              <TextInput
-                style={styles.numbersInput}
+        {savedSets.map((s) => (
+          <View key={s.id} style={styles.savedRow}>
+            <Input
+              value={s.label}
+              placeholder="Note / label"
+              onChangeText={(t) => editSlot(s.id, { label: t })}
+            />
+            <View style={{ marginTop: 8 }}>
+              <Input
                 value={s.numbers}
                 placeholder="03-12-27-..."
                 onChangeText={(t) => editSlot(s.id, { numbers: t })}
               />
-              <View style={styles.savedActions}>
-                <Button title="Save" onPress={() => persist(savedSets)} />
-                <Button title="Replace" onPress={() => replaceSlot(s.id)} />
-                <Button title="Delete" onPress={() => deleteSlot(s.id)} />
-              </View>
             </View>
-          ))}
-        </View>
-      </ScrollView>
-      <Button title="Back" onPress={onBack} />
-    </View>
+            <View style={styles.savedActions}>
+              <Button title="Save" onPress={() => persist(savedSets)} variant="secondary" />
+              <Button title="Replace" onPress={() => replaceSlot(s.id)} variant="secondary" />
+              <Button title="Delete" onPress={() => deleteSlot(s.id)} variant="danger" />
+            </View>
+          </View>
+        ))}
+      </Card>
+
+      <Button title="Back" onPress={onBack} variant="ghost" block />
+    </ScrollScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 24, fontWeight: '700', marginBottom: 8 },
-  form: { flex: 1 },
-  label: { fontSize: 13, color: '#555', marginTop: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
-    paddingHorizontal: 10,
+  grid2: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  cell: { width: '48%' },
+  resultLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 6,
-    fontSize: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: '#eee',
   },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  error: { color: '#c62828', marginTop: 12, fontWeight: '600' },
-  muted: { color: '#777', marginTop: 8, fontStyle: 'italic' },
-  result: { marginTop: 16, padding: 12, backgroundColor: '#f1f5f9', borderRadius: 8 },
-  resultTitle: { fontWeight: '700', marginBottom: 6 },
-  resultLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 },
-  line: { fontSize: 18, fontFamily: 'monospace', letterSpacing: 1 },
-  lineActions: { marginLeft: 8 },
-  notebook: { marginTop: 20, padding: 12, backgroundColor: '#fafafa', borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' },
-  notebookHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  savedRow: { marginBottom: 12, padding: 8, backgroundColor: '#fff', borderRadius: 6, borderWidth: 1, borderColor: '#e2e8f0' },
-  noteInput: {
+  line: { fontSize: 17, fontFamily: 'monospace', letterSpacing: 1, flex: 1, marginRight: 8 },
+  errorCard: { marginBottom: 14, borderColor: '#fecaca', backgroundColor: '#fef2f2' },
+  errorText: { color: palette.danger, fontWeight: '600' },
+  muted: { color: '#94a3b8', fontStyle: 'italic' },
+  notebookHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  savedRow: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: palette.surfaceAlt,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    fontSize: 14,
-    marginBottom: 4,
+    borderColor: palette.border,
   },
-  numbersInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    fontSize: 16,
-    fontFamily: 'monospace',
-    marginBottom: 6,
-  },
-  savedActions: { flexDirection: 'row', justifyContent: 'space-around' },
+  savedActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, gap: 6 },
 });

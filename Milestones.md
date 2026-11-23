@@ -221,3 +221,24 @@ half breakdown is correct.
   match in both Instant and Accelerated modes.
 - Leaving the seed blank yields a different match each game; entering a seed reproduces the same match
   (the used seed is displayed in Live + Summary for reproducibility).
+
+## M10 — UI Redesign (cohesive visual system)
+**Status:** ✅ Done. Re-skinned every screen around a shared component kit
+(`src/components/ui.tsx`: `Screen`, `Card`, `Title`, `Subtitle`, `SectionTitle`, `Button` via
+`Pressable` with variants, `Segmented` control, `Field`, `Input`, plus a `palette`) so the app is
+visually consistent and more usable:
+- **Home**: card-based menu with descriptions for Simulate Match and Lottery.
+- **Sport picker**: 2-column card grid with emoji + tagline per sport (e.g. "11 v 11 · 90 min").
+- **Match options**: grouped cards (Teams / Match setup), styled inputs, and segmented controls
+  replacing the old single-tap cycle buttons for BO3/BO5, quarter length, rugby code, etc.
+- **Live**: scoreboard header (team colours, big score, seed), segmented toggles for
+  Instant/Accelerated and Feed/Stats, custom buttons; the play-by-play rows now have a team-coloured
+  left accent.
+- **Summary**: hero score card + sectioned cards (stats, top scorers, discipline leaders).
+- **Lottery**: card layout, 2-up numeric grid, segmented On/Off toggles, notebook cards.
+
+**Acceptance**
+- `tsc --noEmit` clean; all engine + stats tests still pass (104).
+- Every screen uses the shared kit (no ad-hoc `StyleSheet` duplication); the look is uniform across
+  Home, picker, options, live, summary and lottery.
+- No behaviour changed — only presentation and control affordances (segmented vs cycle button).
