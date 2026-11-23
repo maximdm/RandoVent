@@ -40,3 +40,11 @@ helpers (Poisson / Normal / weighted); sport-specific engines are built out per
 [`Milestones.md`](Milestones.md) (M1–M3). The first screens (`MatchSetupScreen`,
 `LiveMatchScreen`, `MatchSummaryScreen`) are wired to a sample match driven by the engine
 and rendered with FlashList.
+
+## CI
+This repo runs GitHub Actions on every push to `main` and on every pull request:
+- **Typecheck & Test** — `npm run typecheck` (`tsc --noEmit`) and `npm test` (Vitest).
+- **Expo Doctor** — `npx expo install --check` and `npx expo-doctor` validate the Expo
+  project and that installed dependencies match the SDK.
+
+Both are recommended (or required) status checks under branch protection on `main`.
