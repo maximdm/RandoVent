@@ -2,6 +2,7 @@ import { MatchConfig, SportKey } from '../core/MatchConfig';
 import { SimEvent, SimResult, SportEventKind } from '../core/EventTypes';
 import { SportEngine } from '../core/SportEngine';
 import { Rng, createRng, poisson, normal, pickInt, pick, clamp } from '../core/Distributions';
+import { sortEvents } from '../core/events';
 import { createIdFactory } from '../core/id';
 
 // Default roster if none provided: PlayerTeamANo1..NoN (agents.md §3).
@@ -9,8 +10,16 @@ function defaultRoster(prefix: 'A' | 'B', size: number): string[] {
   return Array.from({ length: size }, (_, i) => `PlayerTeam${prefix}No${i + 1}`);
 }
 
+// Red cards reduce a team's scoring strength for the remainder of the match.
+// Each sending-off multiplies the goal rate by 0.85 (per M6 edge case).
+export function applyRedCardPenalty(baseLambda: number, redCards: number): number {
+  if (redCards < 0) throw new Error('applyRedCardPenalty: redCards must be >= 0');
+  return baseLambda * Math.pow(0.85, redCards);
+}
+
 // Non-goal event types football can produce, with a rough per-match frequency
 // (lambda for the Poisson draw) and whether a team is always involved.
+// RED_CARD is handled separately so its count can drive the strength penalty.
 const SUPPORT_EVENTS: Array<{ kind: SportEventKind; lambda: number; needsTeam: boolean }> = [
   { kind: 'FOUL', lambda: 11, needsTeam: true },
   { kind: 'CORNER', lambda: 9, needsTeam: true },
@@ -18,7 +27,6 @@ const SUPPORT_EVENTS: Array<{ kind: SportEventKind; lambda: number; needsTeam: b
   { kind: 'SAVE', lambda: 4, needsTeam: true },
   { kind: 'YELLOW_CARD', lambda: 3, needsTeam: true },
   { kind: 'SUBSTITUTION', lambda: 3, needsTeam: true },
-  { kind: 'RED_CARD', lambda: 0.4, needsTeam: true },
 ];
 
 function randomMinute(rng: Rng): number {
@@ -47,6 +55,12 @@ export class FootballEngine implements SportEngine {
     const lambdaA = clamp(normal(1.45, 0.25, rng), 0.4, 3.5);
     const lambdaB = clamp(normal(1.2, 0.25, rng), 0.4, 3.5);
 
+    // Red cards (M6 edge case): drawn before goals so they reduce team strength.
+    const redCardsA = poisson(0.4, rng);
+    const redCardsB = poisson(0.4, rng);
+    const lambdaAeff = applyRedCardPenalty(lambdaA, redCardsA);
+    const lambdaBeff = applyRedCardPenalty(lambdaB, redCardsB);
+
     const events: SimEvent[] = [];
     let scoreA = 0;
     let scoreB = 0;
@@ -65,9 +79,9 @@ export class FootballEngine implements SportEngine {
 
     pushEvent(0, 'PERIOD_START', null, 'Kickoff');
 
-    // Goals.
-    const goalsA = poisson(lambdaA, rng);
-    const goalsB = poisson(lambdaB, rng);
+    // Goals (using red-card-adjusted rates).
+    const goalsA = poisson(lambdaAeff, rng);
+    const goalsB = poisson(lambdaBeff, rng);
     for (let i = 0; i < goalsA; i++) {
       scoreA++;
       const minute = randomMinute(rng);
@@ -98,10 +112,22 @@ export class FootballEngine implements SportEngine {
       }
     }
 
+    // Red cards (driven by the pre-drawn counts so they reduce team strength).
+    for (const [team, teamName, roster, count] of [
+      ['A', teamAName, rosterA, redCardsA],
+      ['B', teamBName, rosterB, redCardsB],
+    ] as const) {
+      for (let i = 0; i < count; i++) {
+        const minute = randomMinute(rng);
+        const player = pick(roster, rng);
+        pushEvent(minute, 'RED_CARD', team, `${teamName} red card — ${player} (${count} sent off)`, player);
+      }
+    }
+
     pushEvent(90, 'PERIOD_END', null, 'Full time');
     pushEvent(90, 'MATCH_END', null, `Final: ${teamAName} ${scoreA}-${scoreB} ${teamBName}`);
 
-    events.sort((a, b) => a.minute - b.minute || a.id.localeCompare(b.id));
+    sortEvents(events);
 
     const winner: 'A' | 'B' | 'DRAW' =
       scoreA > scoreB ? 'A' : scoreB > scoreA ? 'B' : 'DRAW';
@@ -117,8 +143,12 @@ export class FootballEngine implements SportEngine {
         teamBName,
         lambdaA: Number(lambdaA.toFixed(2)),
         lambdaB: Number(lambdaB.toFixed(2)),
+        lambdaAeff: Number(lambdaAeff.toFixed(2)),
+        lambdaBeff: Number(lambdaBeff.toFixed(2)),
         goalsA,
         goalsB,
+        redCardsA,
+        redCardsB,
       },
     };
   }

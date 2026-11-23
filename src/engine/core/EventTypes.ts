@@ -24,6 +24,9 @@ export type SportEventKind =
   | 'QUARTER_END'
   // Hockey
   | 'PENALTY'
+  | 'SHOOTOUT'
+  // Basketball
+  | 'OVERTIME'
   // Volleyball
   | 'POINT'
   // Table Tennis

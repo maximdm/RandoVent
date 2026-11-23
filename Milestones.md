@@ -102,6 +102,19 @@ the home menu via a top-level screen switcher.
 - Seeded runs are reproducible.
 
 ## M6 — Polish & Hardening
+**Status:** ✅ Done. FlashList feed with `keyExtractor` + `React.memo` rows and TeamA/TeamB accent
+colors + bold badges for key events (GOAL, RED_CARD, POINTS_3/THREE_POINTER, SET_WIN, GAME_WIN,
+TRY, MAP_WIN) were completed in M2. This milestone adds the edge-case models and tests:
+- Football: red cards reduce team scoring strength (`applyRedCardPenalty`, applied per match).
+- Hockey: ties resolved by a shootout (never a draw).
+- Basketball: ties resolved by repeated 5-min overtimes.
+- `sortEvents` guarantees period/match-end markers always sort last (fixed a bug where
+  stoppage-time / overtime events sorted after the final whistle).
+- `EdgeCases.test.ts`: tennis tiebreak (7-6) validity, table-tennis/volleyball win-by-2 bounds,
+  hockey no-draw + shootout occurrence, basketball OT, football red-card penalty + realistic
+  score bounds, lottery boundary validation, mismatched-config rejection, and determinism across
+  50 seeds × 9 sports.
+
 **Deliverables**
 - FlashList (with `keyExtractor` + `React.memo` row items; FlatList fallback) for the event feed.
 - Visual clarity: bold badges for key events (GOAL, SERVICE_BREAK, RED_CARD, THREE_POINTER_MADE)
@@ -112,3 +125,7 @@ the home menu via a top-level screen switcher.
 **Acceptance**
 - 150+ instantly generated events (basketball/tennis) scroll without dropped frames.
 - All edge-case tests pass; `tsc --noEmit` and lint stay green.
+
+> Note: basketball "fouls-out/bonus" detailed modeling (per-quarter team-foul thresholds and
+> bonus free throws) is not yet implemented — a future refinement. The OT/tie-resolution edge
+> is covered.

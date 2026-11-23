@@ -3,6 +3,7 @@ import { SimEvent, SimResult } from '../core/EventTypes';
 import { SportEngine } from '../core/SportEngine';
 import { defaultRoster } from '../core/roster';
 import { Rng, createRng, poisson, normal, pickInt, pick, clamp } from '../core/Distributions';
+import { sortEvents } from '../core/events';
 import { createIdFactory } from '../core/id';
 
 // E-Soccer: virtual football with slightly higher scoring rates than real football.
@@ -50,7 +51,7 @@ export class ESoccerEngine implements SportEngine {
     addGoals('B', poisson(lambdaB, rng), teamBName, rosterB);
 
     events.push({ id: id(), minute: 90, half: 2, kind: 'MATCH_END', team: goalsA === goalsB ? null : goalsA > goalsB ? 'A' : 'B', detail: `Final: ${teamAName} ${goalsA}-${goalsB} ${teamBName}` });
-    events.sort((a, b) => a.minute - b.minute || a.id.localeCompare(b.id));
+    sortEvents(events);
 
     return {
       sport: this.sport,

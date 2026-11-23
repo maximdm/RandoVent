@@ -4,6 +4,7 @@ export * from './core/EventTypes';
 export * from './core/SportEngine';
 export * from './core/roster';
 export * from './core/id';
+export * from './core/events';
 export * from './sports/FootballEngine';
 export * from './sports/TennisEngine';
 export * from './sports/BasketballEngine';

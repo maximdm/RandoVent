@@ -2,6 +2,7 @@ import { MatchConfig, SportKey } from '../core/MatchConfig';
 import { SimEvent, SimResult, SportEventKind } from '../core/EventTypes';
 import { SportEngine } from '../core/SportEngine';
 import { Rng, createRng, normal, pickInt, pick, clamp } from '../core/Distributions';
+import { sortEvents } from '../core/events';
 import { createIdFactory } from '../core/id';
 
 function defaultRoster(prefix: 'A' | 'B', size: number): string[] {
@@ -13,8 +14,8 @@ function defaultRoster(prefix: 'A' | 'B', size: number): string[] {
 function distributePoints(
   events: SimEvent[],
   total: number,
-  quarter: number,
-  qLen: number,
+  minStart: number,
+  minEnd: number,
   team: 'A' | 'B',
   teamName: string,
   roster: string[],
@@ -31,7 +32,7 @@ function distributePoints(
     if (pts > remaining) pts = remaining; // leftover becomes free throws
     remaining -= pts;
 
-    const minute = pickInt((quarter - 1) * qLen + 1, quarter * qLen, rng);
+    const minute = pickInt(minStart, minEnd, rng);
     const player = pick(roster, rng);
     const kind: SportEventKind = pts === 3 ? 'POINTS_3' : pts === 2 ? 'POINTS_2' : 'FREE_THROW';
     events.push({ id: id(), minute, half: 1, kind, team, detail: `${teamName} +${pts} — ${player}` });
@@ -70,12 +71,29 @@ export class BasketballEngine implements SportEngine {
       ptsB += qB;
       quarterScores.push([qA, qB]);
 
-      distributePoints(events, qA, q, qLen, 'A', teamAName, rosterA, rng, id);
-      distributePoints(events, qB, q, qLen, 'B', teamBName, rosterB, rng, id);
+      distributePoints(events, qA, (q - 1) * qLen + 1, q * qLen, 'A', teamAName, rosterA, rng, id);
+      distributePoints(events, qB, (q - 1) * qLen + 1, q * qLen, 'B', teamBName, rosterB, rng, id);
       events.push({ id: id(), minute: q * qLen, half: 1, kind: 'QUARTER_END', team: null, detail: `End of Q${q}` });
     }
 
-    events.sort((a, b) => a.minute - b.minute || a.id.localeCompare(b.id));
+    // Overtime if tied after regulation (M6 edge case) — repeat 5-min OT periods
+    // until a winner emerges (with a safety cap to guarantee termination).
+    let otStart = 4 * qLen;
+    let otPeriod = 1;
+    while (ptsA === ptsB && otPeriod <= 6) {
+      const otLen = 5;
+      const oA = Math.max(0, Math.round(normal(6 * (otLen / 12), 2 * (otLen / 12), rng)));
+      const oB = Math.max(0, Math.round(normal(6 * (otLen / 12), 2 * (otLen / 12), rng)));
+      ptsA += oA;
+      ptsB += oB;
+      distributePoints(events, oA, otStart + 1, otStart + otLen, 'A', teamAName, rosterA, rng, id);
+      distributePoints(events, oB, otStart + 1, otStart + otLen, 'B', teamBName, rosterB, rng, id);
+      events.push({ id: id(), minute: otStart + otLen, half: 1, kind: 'OVERTIME', team: null, detail: `End of OT${otPeriod}` });
+      otStart += otLen;
+      otPeriod++;
+    }
+
+    sortEvents(events);
 
     const winner: 'A' | 'B' | 'DRAW' = ptsA > ptsB ? 'A' : ptsB > ptsA ? 'B' : 'DRAW';
     events.push({
