@@ -17,3 +17,8 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      # Lightweight native-config sanity checks (no Android SDK required):
+      # - expo config resolves app.json / app.config and the Expo project.
+      # - expo install --check verifies installed deps match the Expo SDK.
+      - run: npx expo config --type public
+      - run: npx expo install --check

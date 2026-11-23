@@ -54,3 +54,25 @@ state machine, roster convention, and event taxonomy.
   the generic Best-of-N skeleton and override later.
 - **Expo vs Bare:** resolved in ADR-0001 (recommend Expo with a prebuild/Bare escape hatch). See `docs/adr/`.
 - **State management:** resolved in ADR-0002 (Zustand as primary). See `docs/adr/`.
+
+## Remaining work / known risks
+The engine and UI are feature-complete through M16, but the following are **not yet verified
+on a real device** and should be closed before any store release:
+
+1. **Native build & run.** Every automated check so far is at the TypeScript/unit-test level
+   (`tsc --noEmit`, 144 Vitest tests). No one has confirmed `expo prebuild` / `expo run:android`
+   succeeds, or that the Metro bundle loads and screens render on an emulator/phone. CI now adds
+   `expo config` + `expo install --check` as lightweight config sanity checks, but a full native
+   build still needs local verification (requires the Android SDK). See README
+   "Building on a device".
+2. **Persistence across restart.** Storage uses a best-effort factory: `AsyncStorage` (a declared
+   dependency, so it links on a real build and survives restarts) → `expo-file-system` → in-memory
+   fallback. It has never been confirmed writing to disk on a device; verify it as part of (1).
+3. **Realism re-calibration.** Several calibration bands are deliberately wide (e.g. Rugby Union
+   total 14–62, Basketball total/team 82–135). A second modeling pass would tighten distributions
+   toward observed averages so scores feel credible.
+4. **Production hardening.** No React error boundary (one uncaught throw crashes the app); navigation
+   is a hand-rolled `useState` stack with a manual `BackHandler` (React Navigation would be
+   cleaner). App icons, splash, signing, and store metadata are not yet set up.
+5. **Accessibility & i18n.** No screen-reader labels, dynamic-type handling, or localization beyond
+   English.
