@@ -1,0 +1,28 @@
+name: Automerge
+
+# Guard: only PRs explicitly labeled `automerge` are merged, and only after all
+# status checks (CI, Expo Doctor, Expo Export) have passed. Delete this workflow
+# if you prefer fully manual merging.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  check_suite:
+    types: [completed]
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  automerge:
+    name: Auto-merge (guarded)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Automerge
+        uses: pascalgn/automerge-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MERGE_LABELS: "automerge"
+          MERGE_METHOD: "squash"
+          MERGE_REQUIRED_APPROVALS: "0"

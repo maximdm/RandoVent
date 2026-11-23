@@ -1,0 +1,34 @@
+labels:
+  - name: engine
+    color: "0e8a16"
+    description: "Changes to the pure simulation engine"
+    files:
+      - "src/engine/**"
+
+  - name: ui
+    color: "1d76db"
+    description: "Changes to screens, components, or App entry"
+    files:
+      - "src/screens/**"
+      - "src/components/**"
+      - "App.tsx"
+
+  - name: docs
+    color: "d4c5f9"
+    description: "Documentation changes"
+    files:
+      - "**/*.md"
+      - "docs/**"
+
+  - name: deps
+    color: "0366d6"
+    description: "Dependency changes"
+    files:
+      - "package.json"
+      - "package-lock.json"
+
+  - name: ci
+    color: "f6d743"
+    description: "CI / workflow changes"
+    files:
+      - ".github/**"

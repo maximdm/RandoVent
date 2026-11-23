@@ -46,5 +46,14 @@ This repo runs GitHub Actions on every push to `main` and on every pull request:
 - **Typecheck & Test** — `npm run typecheck` (`tsc --noEmit`) and `npm test` (Vitest).
 - **Expo Doctor** — `npx expo install --check` and `npx expo-doctor` validate the Expo
   project and that installed dependencies match the SDK.
+- **Expo Export** — `npx expo export` bundles the app with Metro to catch bundling/import
+  errors before merge (no Android SDK required).
 
-Both are recommended (or required) status checks under branch protection on `main`.
+The three jobs above are recommended (or required) status checks under branch protection on `main`.
+
+Additional PR automation:
+- **Label PR** (`.github/workflows/label-pr.yml`) — auto-applies `engine` / `ui` / `docs` /
+  `deps` / `ci` labels based on changed paths.
+- **Automerge** (`.github/workflows/automerge.yml`) — a *guard*: only PRs explicitly labeled
+  `automerge` are merged, and only after all status checks pass. Delete it if you prefer
+  manual merging.
