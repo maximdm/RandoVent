@@ -155,3 +155,29 @@ TRY, MAP_WIN, FOUL_OUT, BONUS) were completed in M2. This milestone adds the edg
 - Custom team names and a fixed seed reproduce a match deterministically.
 - Player leaderboards sum exactly to team totals (basketball points/fouls verified); deuce badges
   appear across seeds.
+
+## M8 — Lottery Notebook (save / replace / delete sets)
+**Status:** ✅ Done. A persistent "notebook" of up to 10 saved lottery sets, each with an editable
+note (label). Built in `src/storage/savedSets.ts`:
+- Pure, IO-free operations `addSavedSet` / `replaceSavedSet` / `removeSavedSet` (capped at
+  `MAX_SAVED_SETS = 10`).
+- `SavedSetsRepository` interface with an `InMemorySavedSetsRepository` (session) and an
+  `AsyncStorageSavedSetsRepository` (JSON round-trip, corruption-tolerant). `createSavedSetsRepository`
+  uses AsyncStorage when the package is present and falls back to in-memory otherwise. Because Metro
+  will not bundle a variable `require`, enabling disk persistence after installing the package
+  requires a one-line change in that factory (swap the guarded `require` for a static
+  `import AsyncStorage from '@react-native-async-storage/async-storage'`).
+- `LotteryScreen` UI: each generated line gets a **Save** button; the notebook lists saved sets with
+  editable label + numbers, and **Save / Replace / Delete** per set, plus **Clear all**. Saving is
+  blocked (with a hint) when the notebook is full.
+
+**Acceptance**
+- Notebook holds at most 10 sets; saving when full reports "full" and does not mutate state.
+- Replace overwrites a slot; Delete removes it; both preserve other slots and ids.
+- (Future) Install `@react-native-async-storage/async-storage` and switch `createSavedSetsRepository`
+  to a static import to persist across app restarts — currently falls back to in-memory in this
+  environment (native-module script installs are blocked by the project's npm policy).
+
+> Note: the project's npm policy blocks native-module script execution, so AsyncStorage is not yet
+> installed; the feature works in-session and will persist to disk once the package is added and the
+> factory's `require` is swapped for a static import.
