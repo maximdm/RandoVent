@@ -202,6 +202,17 @@ export function LotteryScreen({ onBack }: Props) {
     commit(removeSetFromSlip(slips, slipId, setId));
   };
 
+  const confirmDeleteSet = (slip: Slip, set: SlipSet) => {
+    Alert.alert('Delete set', `Delete this set (“${set.label}”: ${set.numbers})?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => deleteSet(slip.id, set.id),
+      },
+    ]);
+  };
+
   const editLabel = (slipId: string, setId: string, label: string) => {
     commit(replaceSetInSlip(slips, slipId, setId, { label }));
   };
@@ -341,7 +352,7 @@ export function LotteryScreen({ onBack }: Props) {
                         <View style={{ flex: 1 }}>
                           <Button
                             title="Delete"
-                            onPress={() => deleteSet(slip.id, s.id)}
+                            onPress={() => confirmDeleteSet(slip, s)}
                             variant="danger"
                           />
                         </View>
