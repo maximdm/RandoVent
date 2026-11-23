@@ -2,6 +2,7 @@ import { MatchConfig, SportKey } from '../core/MatchConfig';
 import { SimEvent, SimResult, SportEventKind } from '../core/EventTypes';
 import { SportEngine } from '../core/SportEngine';
 import { Rng, createRng, normal, bernoulli, clamp } from '../core/Distributions';
+import { createIdFactory } from '../core/id';
 
 // Realistic-ish tennis model: best-of sets, each game won by A with probability
 // pA (seed-jittered around ~0.54). Sets use standard 6-game / win-by-2 rules with
@@ -23,8 +24,7 @@ export class TennisEngine implements SportEngine {
     const pA = clamp(normal(0.54, 0.03, rng), 0.35, 0.75);
 
     const events: SimEvent[] = [];
-    let counter = 0;
-    const id = () => `t${counter++}`;
+    const id = createIdFactory('t');
 
     const setScores: Array<[number, number]> = [];
     let setsA = 0;

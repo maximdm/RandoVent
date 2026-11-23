@@ -21,12 +21,25 @@ export type SportEventKind =
   | 'POINTS_2'
   | 'POINTS_3'
   | 'FREE_THROW'
-  | 'QUARTER_END';
+  | 'QUARTER_END'
+  // Hockey
+  | 'PENALTY'
+  // Volleyball
+  | 'POINT'
+  // Table Tennis
+  | 'GAME_WIN'
+  // Rugby
+  | 'TRY'
+  | 'CONVERSION'
+  | 'PENALTY_GOAL'
+  | 'DROP_GOAL'
+  // E-Sport
+  | 'MAP_WIN';
 
 export interface SimEvent {
   id: string;
   minute: number; // match minute (0..90, plus stoppage)
-  half: 1 | 2;
+  half: number; // period/half number (1, 2, 3...) — varies by sport
   kind: SportEventKind;
   team: 'A' | 'B' | null; // null for neutral/period markers
   player?: string;

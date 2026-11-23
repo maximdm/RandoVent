@@ -2,6 +2,7 @@ import { MatchConfig, SportKey } from '../core/MatchConfig';
 import { SimEvent, SimResult, SportEventKind } from '../core/EventTypes';
 import { SportEngine } from '../core/SportEngine';
 import { Rng, createRng, poisson, normal, pickInt, pick, clamp } from '../core/Distributions';
+import { createIdFactory } from '../core/id';
 
 // Default roster if none provided: PlayerTeamANo1..NoN (agents.md §3).
 function defaultRoster(prefix: 'A' | 'B', size: number): string[] {
@@ -49,8 +50,7 @@ export class FootballEngine implements SportEngine {
     const events: SimEvent[] = [];
     let scoreA = 0;
     let scoreB = 0;
-    let counter = 0;
-    const nextId = () => `f${counter++}`;
+    const nextId = createIdFactory('f');
 
     const pushEvent = (
       minute: number,

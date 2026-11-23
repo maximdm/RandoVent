@@ -8,7 +8,15 @@ interface EventFeedProps {
 }
 
 // Key events get a bold badge + accent so goals/cards/big plays stand out.
-const KEY_EVENTS = new Set<SimEvent['kind']>(['GOAL', 'RED_CARD', 'POINTS_3', 'SET_WIN']);
+const KEY_EVENTS = new Set<SimEvent['kind']>([
+  'GOAL',
+  'RED_CARD',
+  'POINTS_3',
+  'SET_WIN',
+  'GAME_WIN',
+  'TRY',
+  'MAP_WIN',
+]);
 
 const Row = memo(function Row({ item }: { item: SimEvent }) {
   const isKey = KEY_EVENTS.has(item.kind);

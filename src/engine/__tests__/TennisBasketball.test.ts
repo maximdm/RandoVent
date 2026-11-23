@@ -65,7 +65,20 @@ describe('BasketballEngine', () => {
 });
 
 describe('getEngine registry', () => {
-  it('throws for unimplemented sports', () => {
-    expect(() => getEngine(SportKey.HOCKEY)).toThrow();
+  it('returns an engine instance for every supported sport', () => {
+    const all = [
+      SportKey.FOOTBALL,
+      SportKey.TENNIS,
+      SportKey.BASKETBALL,
+      SportKey.HOCKEY,
+      SportKey.VOLLEYBALL,
+      SportKey.TABLE_TENNIS,
+      SportKey.RUGBY,
+      SportKey.E_SOCCER,
+      SportKey.E_SPORT,
+    ];
+    for (const sport of all) {
+      expect(getEngine(sport).sport).toBe(sport);
+    }
   });
 });

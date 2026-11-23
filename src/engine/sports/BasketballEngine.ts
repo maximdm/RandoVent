@@ -2,6 +2,7 @@ import { MatchConfig, SportKey } from '../core/MatchConfig';
 import { SimEvent, SimResult, SportEventKind } from '../core/EventTypes';
 import { SportEngine } from '../core/SportEngine';
 import { Rng, createRng, normal, pickInt, pick, clamp } from '../core/Distributions';
+import { createIdFactory } from '../core/id';
 
 function defaultRoster(prefix: 'A' | 'B', size: number): string[] {
   return Array.from({ length: size }, (_, i) => `PlayerTeam${prefix}No${i + 1}`);
@@ -56,8 +57,7 @@ export class BasketballEngine implements SportEngine {
     const rosterB = config.participants?.teamBRoster ?? defaultRoster('B', 12);
 
     const events: SimEvent[] = [];
-    let counter = 0;
-    const id = () => `b${counter++}`;
+    const id = createIdFactory('b');
 
     let ptsA = 0;
     let ptsB = 0;

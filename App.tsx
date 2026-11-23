@@ -2,28 +2,28 @@ import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, StyleSheet } from 'react-native';
 import { HomeScreen } from './src/screens/HomeScreen';
-import { MatchSetupScreen } from './src/screens/MatchSetupScreen';
+import { SportPickerScreen } from './src/screens/SportPickerScreen';
 import { LiveMatchScreen } from './src/screens/LiveMatchScreen';
 import { MatchSummaryScreen } from './src/screens/MatchSummaryScreen';
 import { LotteryScreen } from './src/screens/LotteryScreen';
-import { getEngine, SportKey, MatchConfig, SimResult } from './src/engine';
+import { getEngine, defaultMatchConfig, SportKey, SimResult } from './src/engine';
 
-function simulateFootball(seed: number): SimResult {
-  const config: MatchConfig = { sport: SportKey.FOOTBALL, mode: 'INSTANT', seed };
-  return getEngine(SportKey.FOOTBALL).simulate(config);
+function simulate(sport: SportKey, seed: number): SimResult {
+  return getEngine(sport).simulate(defaultMatchConfig(sport, seed));
 }
 
-type TopView = 'home' | 'match' | 'lottery';
-type MatchView = 'setup' | 'live' | 'summary';
+type TopView = 'home' | 'pick' | 'match' | 'lottery';
+type MatchView = 'live' | 'summary';
 
 export default function App() {
   const [view, setView] = useState<TopView>('home');
-  const [matchView, setMatchView] = useState<MatchView>('setup');
+  const [matchView, setMatchView] = useState<MatchView>('live');
   const [match, setMatch] = useState<SimResult | null>(null);
 
-  const start = (seed: number) => {
-    setMatch(simulateFootball(seed));
+  const start = (sport: SportKey) => {
+    setMatch(simulate(sport, Date.now() % 2147483647));
     setMatchView('live');
+    setView('match');
   };
 
   return (
@@ -31,22 +31,20 @@ export default function App() {
       <StatusBar style="auto" />
       {view === 'home' && (
         <HomeScreen
-          onMatch={() => {
-            setMatchView('setup');
-            setView('match');
-          }}
+          onMatch={() => setView('pick')}
           onLottery={() => setView('lottery')}
         />
       )}
 
-      {view === 'match' && matchView === 'setup' && (
-        <MatchSetupScreen onStart={start} onBack={() => setView('home')} />
+      {view === 'pick' && (
+        <SportPickerScreen onPick={start} onBack={() => setView('home')} />
       )}
+
       {view === 'match' && matchView === 'live' && match && (
         <LiveMatchScreen
           match={match}
           onSummary={() => setMatchView('summary')}
-          onNewMatch={() => start(Date.now() % 2147483647)}
+          onNewMatch={() => setView('pick')}
         />
       )}
       {view === 'match' && matchView === 'summary' && match && (

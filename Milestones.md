@@ -49,10 +49,10 @@ Instant/Accelerated mode handling (M4); engine is pure TS and framework-free.
 - Events are attributed to `PlayerTeamXNoY` per the naming rules (§3).
 
 ## M3 — Remaining Sports
-**Status:** 🟡 In progress. Tennis (BO3/BO5 + tiebreak) and Basketball (10/12-min quarters)
-engines implemented and tested. Remaining: Ice Hockey, Volleyball, Table Tennis, Rugby
-(Union + League), E-Soccer, E-Sport. A `getEngine(sport)` registry returns the right engine
-and throws for not-yet-built sports.
+**Status:** ✅ Done. All nine sports now have engines: Football, Tennis, Basketball, Ice Hockey,
+Volleyball, Table Tennis, Rugby (Union/League), E-Soccer, E-Sport. Each respects its scoring
+distribution and event taxonomy; `getEngine(sport)` + `defaultMatchConfig(sport)` make them
+runnable from a new `SportPickerScreen`. Per-sport options are wired through `MatchConfig`.
 
 **Deliverables**
 - Engines: Tennis, Basketball, Ice Hockey, Volleyball, Table Tennis, Rugby (Union + League),
