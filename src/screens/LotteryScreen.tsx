@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { generateLottery, LotteryError, randomSeed } from '../engine';
 import {
   slipRepo,
   createSlip,
   renameSlip,
+  setSlipCollapsed,
   removeSlip,
   addSetToSlip,
   replaceSetInSlip,
@@ -73,7 +74,6 @@ export function LotteryScreen({ onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const [slips, setSlips] = useState<Slip[]>([]);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [target, setTarget] = useState<string>(NEW);
   const [fullHint, setFullHint] = useState(false);
 
@@ -142,7 +142,6 @@ export function LotteryScreen({ onBack }: Props) {
       commit(next);
       if (newId) {
         setTarget(newId);
-        setExpanded((e) => ({ ...e, [newId as string]: true }));
       }
       if (full) {
         setError(`That slip is full (${MAX_SLIP_SETS}). Reroll or delete a set.`);
@@ -163,16 +162,30 @@ export function LotteryScreen({ onBack }: Props) {
     commit(res.slips);
     const id = res.created!.id;
     setTarget(id);
-    setExpanded((e) => ({ ...e, [id]: true }));
   };
 
-  const deleteSlipById = (id: string) => {
-    commit(removeSlip(slips, id));
-    setExpanded((e) => {
-      const { [id]: _, ...rest } = e;
-      return rest;
-    });
-    if (target === id) setTarget(NEW);
+  const toggleCollapse = (id: string) => {
+    const slip = slips.find((s) => s.id === id);
+    if (!slip) return;
+    commit(setSlipCollapsed(slips, id, !slip.collapsed));
+  };
+
+  const confirmDeleteSlip = (slip: Slip) => {
+    Alert.alert(
+      'Delete slip',
+      `Delete “${slip.name}” and its ${slip.sets.length} set(s)? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            commit(removeSlip(slips, slip.id));
+            if (target === slip.id) setTarget(NEW);
+          },
+        },
+      ],
+    );
   };
 
   const reroll = (slipId: string, setId: string) => {
@@ -275,14 +288,12 @@ export function LotteryScreen({ onBack }: Props) {
         )}
 
         {slips.map((slip) => {
-          const isOpen = !!expanded[slip.id];
+          const isOpen = !slip.collapsed;
           return (
             <View key={slip.id} style={styles.slipCard}>
               <View style={styles.slipTop}>
                 <Pressable
-                  onPress={() =>
-                    setExpanded((e) => ({ ...e, [slip.id]: !e[slip.id] }))
-                  }
+                  onPress={() => toggleCollapse(slip.id)}
                   hitSlop={8}
                   style={styles.chevron}
                 >
@@ -299,7 +310,7 @@ export function LotteryScreen({ onBack }: Props) {
                   {slip.sets.length}/{MAX_SLIP_SETS}
                 </Text>
                 <Pressable
-                  onPress={() => deleteSlipById(slip.id)}
+                  onPress={() => confirmDeleteSlip(slip)}
                   hitSlop={8}
                   style={styles.trash}
                 >

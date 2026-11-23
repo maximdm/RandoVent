@@ -311,11 +311,12 @@ visually consistent and more usable:
     slips show their sets (editable label, numbers, conditions line, **Reroll ↻** / **Delete**).
 
 **Acceptance**
-- `tsc --noEmit` clean; tests pass (106 — `slip.test.ts` now covers create/rename/remove/add/replace/
-  remove-set/reroll at the slip-collection level).
+- `tsc --noEmit` clean; tests pass (107 — `slip.test.ts` now covers create/rename/remove/add/replace/
+  remove-set/reroll at the slip-collection level, plus collapse persistence).
 - Up to 10 slips; each slip up to 10 sets; overflow reports "full" and does not mutate state.
-- Rename persists; collapse state is UI-only (not persisted); deleting a slip also drops it as the
-  generation target.
+- Rename persists; **collapse state is persisted** on each slip (`collapsed` field) so it survives app
+  restarts; **deleting a slip shows a confirm dialog** (Cancel / Delete) before removing it and its
+  sets, and also drops it as the generation target.
 - Same persistence caveat as M12 (backend-dependent disk storage).
 
 > Note: `LotteryScreen` previously referenced a single `SlipSet[]`; it now drives the `Slip[]` model.

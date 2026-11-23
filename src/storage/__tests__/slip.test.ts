@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   createSlip,
   renameSlip,
+  setSlipCollapsed,
   removeSlip,
   addSetToSlip,
   replaceSetInSlip,
@@ -102,6 +103,19 @@ describe('slip collection operations', () => {
     expect(slips[0].sets[0].config).toEqual(cfg); // conditions preserved
     expect(slips[0].sets[0].numbers).not.toBe('01-02-03'); // outcome changed
     expect(slips[0].sets[0].seed).toBe(101);
+  });
+
+  it('toggles collapse state and persists it through the repository', async () => {
+    let { slips } = createSlip([]);
+    const id = slips[0].id;
+    expect(slips[0].collapsed).toBe(false);
+    slips = setSlipCollapsed(slips, id, true);
+    expect(slips[0].collapsed).toBe(true);
+
+    const repo = new InMemorySlipRepository();
+    await repo.saveAll(slips);
+    const loaded = await repo.load();
+    expect(loaded[0].collapsed).toBe(true);
   });
 });
 

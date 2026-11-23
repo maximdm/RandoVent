@@ -32,6 +32,7 @@ export interface Slip {
   id: string;
   name: string; // user-given name, e.g. "Friday Lotto"
   sets: SlipSet[];
+  collapsed: boolean; // UI state, persisted so it survives restarts
   createdAt: number;
   updatedAt: number;
 }
@@ -68,6 +69,7 @@ export function createSlip(
     id: createId(),
     name: name?.trim() || `Slip ${current.length + 1}`,
     sets: [],
+    collapsed: false,
     createdAt: now,
     updatedAt: now,
   };
@@ -78,6 +80,12 @@ export function renameSlip(current: Slip[], id: string, name: string): Slip[] {
   const trimmed = name.trim();
   return current.map((s) =>
     s.id === id ? { ...s, name: trimmed || s.name, updatedAt: Date.now() } : s,
+  );
+}
+
+export function setSlipCollapsed(current: Slip[], id: string, collapsed: boolean): Slip[] {
+  return current.map((s) =>
+    s.id === id ? { ...s, collapsed, updatedAt: Date.now() } : s,
   );
 }
 
