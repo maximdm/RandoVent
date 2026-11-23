@@ -196,6 +196,10 @@ from the event log) plus **period / set breakdowns**, covering all nine sports:
 - **Tennis service breaks**: new `BREAK` event kind, emitted by `TennisEngine` when the returner wins
   a game (serve now alternates each game). `DEUCE` / `TIEBREAK` counts also surfaced.
 - `EventFeed` now badges `BREAK` like other key events.
+- **Live stats toggle**: `LiveMatchScreen` gained a **Feed / Stats** switch (works in both Instant
+  and Accelerated modes) that shows the same stats panel mid-match. The rendering was extracted into a
+  shared `src/components/MatchStatsView.tsx` (`StatTable` + `MatchStatsSections` + `MatchStatsView`)
+  so the Summary screen and the live toggle use one implementation.
 
 **Bug fixed (latent, surfaced by this feature):** `BasketballEngine.recordQuarter` subtracted the
 previous *delta* instead of the running cumulative, so per-quarter scores were wrong from Q3 onward.
@@ -209,6 +213,5 @@ half breakdown is correct.
 - Tennis service breaks occur across seeds; set breakdown length equals sets played.
 - Basketball quarter breakdown sums to the final score; hockey shows 3 periods.
 - `computeMatchStats` runs without error for all nine sports.
-
-> Note: stats are reviewed in `MatchSummaryScreen`. Surfacing a compact live-stats strip in
-> `LiveMatchScreen` is a possible follow-up but not required.
+- Live **Stats** toggle renders the same panel (per-team tallies + period/set breakdowns) during a
+  match in both Instant and Accelerated modes.
