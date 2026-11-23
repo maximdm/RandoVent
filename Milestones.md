@@ -104,16 +104,20 @@ the home menu via a top-level screen switcher.
 ## M6 — Polish & Hardening
 **Status:** ✅ Done. FlashList feed with `keyExtractor` + `React.memo` rows and TeamA/TeamB accent
 colors + bold badges for key events (GOAL, RED_CARD, POINTS_3/THREE_POINTER, SET_WIN, GAME_WIN,
-TRY, MAP_WIN) were completed in M2. This milestone adds the edge-case models and tests:
+TRY, MAP_WIN, FOUL_OUT, BONUS) were completed in M2. This milestone adds the edge-case models and tests:
 - Football: red cards reduce team scoring strength (`applyRedCardPenalty`, applied per match).
 - Hockey: ties resolved by a shootout (never a draw).
 - Basketball: ties resolved by repeated 5-min overtimes.
+- Basketball: **team-foul / bonus / foul-out modeling** — personal fouls tracked per player
+  (foul out at 5), team fouls reset per quarter, opponent enters the bonus at the 5th team foul
+  and shoots two bonus free throws each (made with `FT_RATE`); `FREE_THROW_MISS` event keeps
+  `runningScore` exact.
 - `sortEvents` guarantees period/match-end markers always sort last (fixed a bug where
   stoppage-time / overtime events sorted after the final whistle).
 - `EdgeCases.test.ts`: tennis tiebreak (7-6) validity, table-tennis/volleyball win-by-2 bounds,
-  hockey no-draw + shootout occurrence, basketball OT, football red-card penalty + realistic
-  score bounds, lottery boundary validation, mismatched-config rejection, and determinism across
-  50 seeds × 9 sports.
+  hockey no-draw + shootout occurrence, basketball OT + bonus/foul-out, football red-card penalty
+  + realistic score bounds, lottery boundary validation, mismatched-config rejection, and
+  determinism across 50 seeds × 9 sports.
 
 **Deliverables**
 - FlashList (with `keyExtractor` + `React.memo` row items; FlatList fallback) for the event feed.
@@ -126,6 +130,16 @@ TRY, MAP_WIN) were completed in M2. This milestone adds the edge-case models and
 - 150+ instantly generated events (basketball/tennis) scroll without dropped frames.
 - All edge-case tests pass; `tsc --noEmit` and lint stay green.
 
-> Note: basketball "fouls-out/bonus" detailed modeling (per-quarter team-foul thresholds and
-> bonus free throws) is not yet implemented — a future refinement. The OT/tie-resolution edge
-> is covered.
+## M7 — UI Depth (options + customization)
+**Status:** 🟡 In progress. Builds a real match-setup flow so users control more than defaults:
+- `MatchOptionsScreen`: per-sport option controls (tennis/volleyball/table-tennis BO3/BO5/BO7,
+  basketball quarter length 10/12, rugby Union/League, e-sport best-of + round target), editable
+  team names, and a seed field. Replaces the previous "always use defaults" path.
+- App flow: Home → Sport Picker → Options → Live/Summary. `defaultMatchConfig` retained for
+  quick/test paths.
+- Wired through `LiveMatchScreen`/`MatchSummaryScreen` via `MatchConfig.participants`.
+
+**Acceptance**
+- Every sport's documented options are reachable from the UI and change the simulated match
+  structure (e.g., BO5 tennis plays to 3 sets; 10-min basketball totals below 12-min).
+- Custom team names and a fixed seed reproduce a match deterministically.

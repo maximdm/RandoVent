@@ -21,12 +21,15 @@ export type SportEventKind =
   | 'POINTS_2'
   | 'POINTS_3'
   | 'FREE_THROW'
+  | 'FREE_THROW_MISS'
   | 'QUARTER_END'
   // Hockey
   | 'PENALTY'
   | 'SHOOTOUT'
   // Basketball
   | 'OVERTIME'
+  | 'FOUL_OUT'
+  | 'BONUS'
   // Volleyball
   | 'POINT'
   // Table Tennis

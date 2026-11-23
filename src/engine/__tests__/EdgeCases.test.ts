@@ -109,6 +109,54 @@ describe('M6 edge cases', () => {
     expect(sawOT).toBe(true);
   });
 
+  it('Basketball: produces fouls, a bonus, and foul-outs across many seeds', () => {
+    let sawFoul = false;
+    let sawBonus = false;
+    let sawFoulOut = false;
+    for (let seed = 0; seed < 800; seed++) {
+      const r = getEngine(SportKey.BASKETBALL).simulate({
+        sport: SportKey.BASKETBALL,
+        mode: 'INSTANT',
+        seed,
+        options: { quarterLength: 12 },
+      } as MatchConfig);
+      const kinds = r.events.map((e) => e.kind);
+      if (kinds.includes('FOUL')) sawFoul = true;
+      if (kinds.includes('BONUS')) sawBonus = true;
+      if (kinds.includes('FOUL_OUT')) sawFoulOut = true;
+      // Every foul-out is preceded by a 5th personal foul for that player.
+      for (const e of r.events) {
+        if (e.kind === 'FOUL_OUT') {
+          const fouls = r.events.filter(
+            (x) => x.kind === 'FOUL' && x.player === e.player && x.team === e.team,
+          ).length;
+          expect(fouls).toBeGreaterThanOrEqual(5);
+        }
+      }
+    }
+    expect(sawFoul).toBe(true);
+    expect(sawBonus).toBe(true);
+    expect(sawFoulOut).toBe(true);
+  });
+
+  it('Basketball: 10-min quarters yield a lower total than 12-min for same seed', () => {
+    for (let seed = 0; seed < 50; seed++) {
+      const a = getEngine(SportKey.BASKETBALL).simulate({
+        sport: SportKey.BASKETBALL,
+        mode: 'INSTANT',
+        seed,
+        options: { quarterLength: 10 },
+      } as MatchConfig);
+      const b = getEngine(SportKey.BASKETBALL).simulate({
+        sport: SportKey.BASKETBALL,
+        mode: 'INSTANT',
+        seed,
+        options: { quarterLength: 12 },
+      } as MatchConfig);
+      expect(a.scoreA + a.scoreB).toBeLessThanOrEqual(b.scoreA + b.scoreB);
+    }
+  });
+
   it('Football: red cards reduce effective lambda and appear as events', () => {
     let sawRed = false;
     for (let seed = 0; seed < 300; seed++) {
