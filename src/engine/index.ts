@@ -14,4 +14,5 @@ export * from './sports/RugbyEngine';
 export * from './sports/ESoccerEngine';
 export * from './sports/ESportEngine';
 export * from './registry';
+export * from './playback';
 export * from './lottery/Lottery';

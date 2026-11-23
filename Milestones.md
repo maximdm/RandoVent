@@ -71,6 +71,12 @@ runnable from a new `SportPickerScreen`. Per-sport options are wired through `Ma
   10-min basketball quarters total 40 mins).
 
 ## M4 — Simulation Modes
+**Status:** ✅ Done. Instant and Accelerated both consume the same precomputed `SimResult`
+(the engine output), so Accelerated is a timed reveal — guaranteeing byte-identical final logs.
+Implemented in `src/engine/playback.ts` (`MatchPlayback`, `runningScore`) + `src/hooks/useMatchPlayback.ts`,
+exposed via an Instant/Accelerated toggle, match clock, progress bar, live running score, and
+Pause/Resume/Reset/Skip controls in `LiveMatchScreen`.
+
 **Deliverables**
 - Instant mode: full match in <50ms, immediate scoreboard + stats + full event log.
 - Accelerated mode: 2 match-minutes per real second (100ms/250ms ticks), with Pause/Resume/Reset.
