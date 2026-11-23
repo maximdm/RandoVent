@@ -7,6 +7,7 @@ export enum SportKey {
   VOLLEYBALL = 'VOLLEYBALL',
   TABLE_TENNIS = 'TABLE_TENNIS',
   RUGBY = 'RUGBY',
+  HANDBALL = 'HANDBALL',
   E_SOCCER = 'E_SOCCER',
   E_SPORT = 'E_SPORT',
 }
@@ -62,7 +63,8 @@ export type MatchConfig =
   | (BaseMatchConfig & { sport: SportKey.E_SPORT; options: ESportOptions })
   | (BaseMatchConfig & { sport: SportKey.FOOTBALL; options?: Record<string, never> })
   | (BaseMatchConfig & { sport: SportKey.E_SOCCER; options?: Record<string, never> })
-  | (BaseMatchConfig & { sport: SportKey.HOCKEY; options?: Record<string, never> });
+  | (BaseMatchConfig & { sport: SportKey.HOCKEY; options?: Record<string, never> })
+  | (BaseMatchConfig & { sport: SportKey.HANDBALL; options?: Record<string, never> });
 
 // Lottery generator config (agents.md §7).
 export interface LotteryConfig {

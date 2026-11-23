@@ -199,7 +199,8 @@ describe('M6 edge cases', () => {
   it('Determinism holds across many seeds for every sport', () => {
     const sports = [
       SportKey.FOOTBALL, SportKey.TENNIS, SportKey.BASKETBALL, SportKey.HOCKEY,
-      SportKey.VOLLEYBALL, SportKey.TABLE_TENNIS, SportKey.RUGBY, SportKey.E_SOCCER, SportKey.E_SPORT,
+      SportKey.VOLLEYBALL, SportKey.TABLE_TENNIS, SportKey.RUGBY, SportKey.HANDBALL,
+      SportKey.E_SOCCER, SportKey.E_SPORT,
     ];
     for (const sport of sports) {
       for (let seed = 1; seed <= 50; seed++) {

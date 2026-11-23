@@ -71,6 +71,26 @@ describe('Realism calibration (widened bands)', () => {
     expect(kinds.has('FACEOFF_WIN')).toBe(true);
   });
 
+  it('Handball: average goals/team within a realistic (widened) band', () => {
+    const perTeam = seeds.flatMap((s) => {
+      const r = simulate(SportKey.HANDBALL, s);
+      return [r.scoreA, r.scoreB];
+    });
+    const m = mean(perTeam);
+    // Elite handball averages ~26–27 goals/team; allow slack.
+    expect(m).toBeGreaterThan(20);
+    expect(m).toBeLessThan(35);
+  });
+
+  it('Handball: enriched shot/save/7m events are present', () => {
+    const r = simulate(SportKey.HANDBALL, 17);
+    const kinds = new Set(r.events.map((e) => e.kind));
+    expect(kinds.has('SAVE')).toBe(true);
+    expect(kinds.has('SHOT_ON_GOAL')).toBe(true);
+    expect(kinds.has('PENALTY_7M')).toBe(true);
+    expect(kinds.has('FAST_BREAK')).toBe(true);
+  });
+
   it('Rugby (Union): average total points per match', () => {
     const totals = seeds.map((s) => {
       const r = simulate(SportKey.RUGBY, s, { code: 'UNION' });

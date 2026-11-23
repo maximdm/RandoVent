@@ -11,6 +11,7 @@ describe('MatchPlayback (M4)', () => {
     SportKey.VOLLEYBALL,
     SportKey.TABLE_TENNIS,
     SportKey.RUGBY,
+    SportKey.HANDBALL,
     SportKey.E_SOCCER,
     SportKey.E_SPORT,
   ];

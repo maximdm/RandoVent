@@ -416,3 +416,37 @@ on-device match history, lottery extras, an Android hardware back button + consi
   back bar preserve navigation correctness.
 - Same storage caveat as M12–M14: disk persistence requires a linked backend; in the sandbox it
   falls back to in-memory for the session.
+
+## M16 — Handball (10th sport)
+**Status:** ✅ Done. Added team handball as a full engine, bringing the roster to ten sports.
+- `SportKey.HANDBALL` added to `MatchConfig.ts`; the `MatchConfig` union gains a no-options member
+  (like football/hockey), and `defaultMatchConfig` returns `{ sport, mode, seed }`.
+- New `src/engine/sports/HandballEngine.ts`: 2 × 30-min halves (60 min), Poisson goals
+  (~27/team, clamped 14–45), with **7-metre throws** (`PENALTY_7M`) ≈18% of goals and
+  **fast breaks** (`FAST_BREAK`) ≈15% of open-play goals; most goals are **assisted**. Models
+  shots/saves (goalkeeper `SAVE`), turnovers, steals, 2-minute **suspensions**, cards and
+  substitutions as feed-only flavour. Handball can end level in regular play, so a tie is a valid
+  `DRAW` outcome (no artificial shootout).
+- Flavour events use a **separate deterministic RNG stream** (M15 convention) so the scoring
+  sequence — and therefore final scores — are never perturbed by enrichment.
+- Player box score extended: `PlayerStat.saves` (+ `SAVE → saves` in `BOX_VALUE`) so goalkeepers
+  surface their saves; `MatchSummaryScreen.boxLine` shows `sv`.
+- `STAT_LABELS` / `ALL_KINDS` gained `PENALTY_7M` / `FAST_BREAK` / `SUSPENSION`; `EventFeed`
+  badges `PENALTY_7M` and `FAST_BREAK`.
+- `computeMatchStats` now produces a **1st/2nd-half** breakdown for handball (`periodSports` set +
+  `periodLabel` case), derived from `GOAL` events grouped by `half`.
+- Registered in `registry.ts` (`getEngine` + `defaultMatchConfig`) and `SPORT_LABEL`; exported from
+  `engine/index.ts`; added to the `SportPickerScreen` grid (🤾, "2 × 30 min · 7m").
+- `MatchOptionsScreen` handles handball via its `default` branch (team names + seed).
+- Tests: new `HandballEngine.test.ts` (determinism, MATCH_END last, valid winner/draw, per-goal
+  GOAL events, flavour presence, half breakdown, box-score goals/assists/saves) and a handball
+  block in `Calibration.test.ts` (avg goals/team within a widened 20–35 band + enriched-event
+  presence). Handball also folded into the existing "all sports" determinism (EdgeCases) and
+  playback (Playback, RemainingSports) loops.
+
+**Acceptance**
+- `tsc --noEmit` clean; **all 144 tests pass** (was 132).
+- `getEngine(SportKey.HANDBALL)` simulates deterministically; scores/winner are internally consistent.
+- Enriched events (`SAVE`, `SHOT_ON_GOAL`, `PENALTY_7M`, `FAST_BREAK`, `TURNOVER`, `SUSPENSION`)
+  appear in the log; period breakdown shows both halves.
+- Same storage caveat as M12–M15.

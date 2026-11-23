@@ -16,6 +16,7 @@ const SPORTS: Array<{ key: SportKey; label: string; tag: string; emoji: string }
   { key: SportKey.VOLLEYBALL, label: 'Volleyball', tag: 'Rally · sets', emoji: '🏐' },
   { key: SportKey.TABLE_TENNIS, label: 'Table Tennis', tag: 'Best of 5 / 7', emoji: '🏓' },
   { key: SportKey.RUGBY, label: 'Rugby', tag: 'Tries & goals', emoji: '🏉' },
+  { key: SportKey.HANDBALL, label: 'Handball', tag: '2 x 30 min · 7m', emoji: '🤾' },
   { key: SportKey.E_SOCCER, label: 'E-Soccer', tag: 'Virtual 90 min', emoji: '🎮' },
   { key: SportKey.E_SPORT, label: 'E-Sport', tag: 'Best of maps', emoji: '🕹️' },
 ];

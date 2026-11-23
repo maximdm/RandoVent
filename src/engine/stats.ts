@@ -11,6 +11,7 @@ export interface PlayerStat {
   steals?: number;
   blocks?: number;
   kills?: number;
+  saves?: number;
 }
 
 // Event kinds that count toward a player's discipline/foul tally. A `FOUL_OUT`
@@ -31,6 +32,7 @@ const BOX_VALUE: Partial<Record<SportEventKind, Partial<Record<keyof PlayerStat,
   STEAL: { steals: 1 },
   BLOCK: { blocks: 1 },
   KILL: { kills: 1 },
+  SAVE: { saves: 1 },
 };
 
 // Derives per-team player leaderboards directly from the event log, so no engine
@@ -59,7 +61,7 @@ export function computePlayerStats(sim: SimResult): { A: PlayerStat[]; B: Player
     if (!e.player || (e.team !== 'A' && e.team !== 'B')) continue;
     let s = acc[e.team].get(e.player);
     if (!s) {
-      s = { name: e.player, points: 0, fouls: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0, kills: 0 };
+      s = { name: e.player, points: 0, fouls: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0, kills: 0, saves: 0 };
       acc[e.team].set(e.player, s);
     }
     bump(s, e.kind);
@@ -124,6 +126,10 @@ export const STAT_LABELS: Partial<Record<SportEventKind, string>> = {
   SHOT_ON_GOAL: 'Shots on goal',
   FACEOFF_WIN: 'Faceoffs won',
   ICING: 'Icings',
+  // Handball
+  PENALTY_7M: '7m penalties',
+  FAST_BREAK: 'Fast breaks',
+  SUSPENSION: '2-min suspensions',
   // Volleyball
   KILL: 'Kills',
   SERVE_ACE: 'Serve aces',
@@ -159,6 +165,7 @@ const ALL_KINDS: SportEventKind[] = [
   'SHOT_ON_GOAL', 'FACEOFF_WIN', 'ICING', 'OVERTIME', 'FOUL_OUT', 'BONUS', 'POINT',
   'KILL', 'SERVE_ACE', 'SERVE_ERROR', 'ATTACK_ERROR', 'RECEPTION_ERROR', 'DIG',
   'SET_ASSIST', 'GAME_WIN', 'NET_CORD', 'EDGE_BALL', 'LONG_RALLY', 'TRY',
+  'PENALTY_7M', 'FAST_BREAK', 'SUSPENSION',
   'CONVERSION', 'PENALTY_GOAL', 'DROP_GOAL', 'TACKLE', 'SCRUM', 'LINEOUT', 'KNOCK_ON',
   'MAP_WIN', 'HEADSHOT', 'ROUND_WIN', 'BOMB_PLANT', 'BOMB_DEFUSE', 'OBJECTIVE_CAPTURE',
   'CLUTCH',
@@ -197,6 +204,7 @@ function periodLabel(sport: string, half: number): string {
   switch (sport) {
     case SportKey.FOOTBALL:
     case SportKey.RUGBY:
+    case SportKey.HANDBALL:
       return half === 1 ? '1st half' : half === 2 ? '2nd half' : `Half ${half}`;
     case SportKey.HOCKEY:
       return `Period ${half}`;
@@ -220,7 +228,7 @@ function computePeriods(sim: SimResult): PeriodStat[] {
       scoreB: b,
     }));
   }
-  const periodSports = new Set([SportKey.FOOTBALL, SportKey.HOCKEY, SportKey.RUGBY]);
+  const periodSports = new Set([SportKey.FOOTBALL, SportKey.HOCKEY, SportKey.RUGBY, SportKey.HANDBALL]);
   if (!periodSports.has(sim.sport as SportKey)) return [];
 
   // Collect every period that occurred (so a goalless period still shows 0-0),

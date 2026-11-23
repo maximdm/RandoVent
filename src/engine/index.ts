@@ -12,6 +12,7 @@ export * from './sports/HockeyEngine';
 export * from './sports/VolleyballEngine';
 export * from './sports/TableTennisEngine';
 export * from './sports/RugbyEngine';
+export * from './sports/HandballEngine';
 export * from './sports/ESoccerEngine';
 export * from './sports/ESportEngine';
 export * from './registry';

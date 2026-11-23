@@ -69,6 +69,10 @@ export type SportEventKind =
   | 'SCRUM'
   | 'LINEOUT'
   | 'KNOCK_ON'
+  // Handball
+  | 'PENALTY_7M' // 7-metre throw awarded (handball's penalty)
+  | 'FAST_BREAK'
+  | 'SUSPENSION' // 2-minute suspension
   // E-Sport
   | 'MAP_WIN'
   | 'KILL'

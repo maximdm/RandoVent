@@ -42,6 +42,7 @@ function boxLine(r: PlayerStat): string {
   if ((r.steals ?? 0) > 0) parts.push(`${r.steals} stl`);
   if ((r.blocks ?? 0) > 0) parts.push(`${r.blocks} blk`);
   if ((r.kills ?? 0) > 0) parts.push(`${r.kills} kills`);
+  if ((r.saves ?? 0) > 0) parts.push(`${r.saves} sv`);
   return `${r.name}: ${parts.join(', ')}`;
 }
 

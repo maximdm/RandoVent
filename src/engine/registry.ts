@@ -7,6 +7,7 @@ import { HockeyEngine } from './sports/HockeyEngine';
 import { VolleyballEngine } from './sports/VolleyballEngine';
 import { TableTennisEngine } from './sports/TableTennisEngine';
 import { RugbyEngine } from './sports/RugbyEngine';
+import { HandballEngine } from './sports/HandballEngine';
 import { ESoccerEngine } from './sports/ESoccerEngine';
 import { ESportEngine } from './sports/ESportEngine';
 
@@ -19,6 +20,7 @@ export const SPORT_LABEL: Record<SportKey, string> = {
   [SportKey.VOLLEYBALL]: 'Volleyball',
   [SportKey.TABLE_TENNIS]: 'Table Tennis',
   [SportKey.RUGBY]: 'Rugby',
+  [SportKey.HANDBALL]: 'Handball',
   [SportKey.E_SOCCER]: 'E-Soccer',
   [SportKey.E_SPORT]: 'E-Sport',
 };
@@ -42,6 +44,8 @@ export function getEngine(sport: SportKey): SportEngine {
       return new TableTennisEngine();
     case SportKey.RUGBY:
       return new RugbyEngine();
+    case SportKey.HANDBALL:
+      return new HandballEngine();
     case SportKey.E_SOCCER:
       return new ESoccerEngine();
     case SportKey.E_SPORT:
@@ -70,6 +74,8 @@ export function defaultMatchConfig(sport: SportKey, seed: number): MatchConfig {
       return { sport, mode, seed, options: { matchFormat: 'BO5' } };
     case SportKey.RUGBY:
       return { sport, mode, seed, options: { code: 'UNION' } };
+    case SportKey.HANDBALL:
+      return { sport, mode, seed };
     case SportKey.E_SPORT:
       return { sport, mode, seed, options: { bestOf: 3, roundTarget: 13 } };
   }
