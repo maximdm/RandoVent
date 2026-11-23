@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Button } from 'react-native';
 import { EventFeed } from '../components/EventFeed';
+import { MatchStatsView } from '../components/MatchStatsView';
 import { SimResult, runningScore } from '../engine';
 import { useMatchPlayback } from '../hooks/useMatchPlayback';
 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 type Mode = 'INSTANT' | 'ACCELERATED';
+type LiveView = 'feed' | 'stats';
 
 // Self-contained Accelerated view: clock, running score, controls, and the
 // progressively revealed feed. Kept as its own component so the playback hook is
@@ -49,16 +51,13 @@ function AcceleratedView({ match, onSummary, onNewMatch }: Props) {
         <Button title="Reset" onPress={reset} />
         <Button title="Skip" onPress={jumpToEnd} disabled={status === 'finished'} />
       </View>
-      <View style={styles.controls}>
-        <Button title="Summary" onPress={onSummary} />
-        <Button title="New Match" onPress={onNewMatch} />
-      </View>
     </View>
   );
 }
 
 export function LiveMatchScreen({ match, onSummary, onNewMatch }: Props) {
   const [mode, setMode] = useState<Mode>('INSTANT');
+  const [liveView, setLiveView] = useState<LiveView>('feed');
   const [a, b] = runningScore(match, match.events);
   const { teamAName, teamBName } = match.metadata as { teamAName: string; teamBName: string };
 
@@ -73,19 +72,21 @@ export function LiveMatchScreen({ match, onSummary, onNewMatch }: Props) {
         <Button title="Accelerated" onPress={() => setMode('ACCELERATED')} />
       </View>
 
-      {mode === 'INSTANT' ? (
-        <>
-          <View style={styles.feed}>
-            <EventFeed events={match.events} />
-          </View>
-          <View style={styles.controls}>
-            <Button title="Summary" onPress={onSummary} />
-            <Button title="New Match" onPress={onNewMatch} />
-          </View>
-        </>
+      {liveView === 'stats' ? (
+        <MatchStatsView match={match} />
+      ) : mode === 'INSTANT' ? (
+        <View style={styles.feed}>
+          <EventFeed events={match.events} />
+        </View>
       ) : (
         <AcceleratedView match={match} onSummary={onSummary} onNewMatch={onNewMatch} />
       )}
+
+      <View style={styles.controls}>
+        <Button title={liveView === 'stats' ? 'Feed' : 'Stats'} onPress={() => setLiveView(liveView === 'stats' ? 'feed' : 'stats')} />
+        <Button title="Summary" onPress={onSummary} />
+        <Button title="New Match" onPress={onNewMatch} />
+      </View>
     </View>
   );
 }
