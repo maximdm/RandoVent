@@ -43,15 +43,16 @@ export class RugbyEngine implements SportEngine {
         pts += p;
         events.push({ id: id(), minute, half, kind, team, detail: `${teamName} +${p}${player ? ` — ${player}` : ''}`, player });
       };
-      // Caps keep extreme Poisson tails realistic: a team scoring 8+ tries or 6+
-      // penalties in a single match is essentially unheard of, so we bound them.
-      const tries = Math.min(poisson(triesLambda, rng), 7);
+      // Caps keep extreme Poisson tails realistic: a team scoring more than 8
+      // tries or 6 penalties in a single match is essentially unheard of, so we
+      // bound them (see AGENTS.md §4-G).
+      const tries = Math.min(poisson(triesLambda, rng), 8);
       for (let i = 0; i < tries; i++) {
         const scorer = pick(roster, rng);
         add('TRY', tryPts, scorer);
         if (bernoulli(0.78, rng)) add('CONVERSION', convPts);
       }
-      const pens = Math.min(poisson(pensLambda, rng), 5);
+      const pens = Math.min(poisson(pensLambda, rng), 6);
       for (let i = 0; i < pens; i++) add('PENALTY_GOAL', penPts);
       const drops = Math.min(poisson(dropsLambda, rng), 2);
       for (let i = 0; i < drops; i++) add('DROP_GOAL', dropPts);

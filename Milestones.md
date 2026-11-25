@@ -458,7 +458,7 @@ device/i18n/store work that needs a native toolchain — see "Not done" below).
 ### 3. Tighten realism / calibrate properly
 - **Rugby (Union)** was the worst offender: Poisson tries with no caps produced a 5–121 total spread.
   Retuned in `RugbyEngine.ts`: lower try/penalty rates (≈2.7–2.9 tries, ≈1.8–1.9 pens per team) and
-  **hard caps** — tries ≤ 7, penalties ≤ 5, drop goals ≤ 2 per team — so totals cluster in the
+  **hard caps** — tries ≤ 8, penalties ≤ 6, drop goals ≤ 2 per team — so totals cluster in the
   high-40s to mid-50s (measured mean **51.2**) with rare blowouts. `agents.md` §4 updated to match.
 - **Calibration bands** (`Calibration.test.ts`) tightened to credible ranges backed by measured means
   over the fixed 400-seed set (deterministic, so the bands are safe, not brittle):
